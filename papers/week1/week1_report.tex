@@ -1,0 +1,113 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% LaTeX template for reading report
+% Author: Shuo Yang
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass[11pt]{article}
+\usepackage{amsmath,amssymb,epsfig,graphics,hyperref,amsthm,mathtools,enumitem}
+\DeclarePairedDelimiter\ceil{\lceil}{\rceil}
+\DeclarePairedDelimiter\floor{\lfloor}{\rfloor}
+
+\hypersetup{colorlinks=true}
+
+\setlength{\textwidth}{7in}
+\setlength{\topmargin}{-0.575in}
+\setlength{\textheight}{9.25in}
+\setlength{\oddsidemargin}{-.25in}
+\setlength{\evensidemargin}{-.25in}
+
+\reversemarginpar
+\setlength{\marginparsep}{-15mm}
+
+\newcommand{\rmv}[1]{}
+\newcommand{\bemph}[1]{{\bfseries\itshape#1}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\imply}{\to}
+\newcommand{\bic}{\leftrightarrow}
+
+% Some user defined strings for the homework assignment
+%
+\def\CourseCode{CS525}
+\def\ReportNo{1}
+\def\Category{Reading Report}
+\def\PaperTitle{On Distributed Communications Networks}
+\def\Author{Shuo Yang}
+
+\begin{document}
+
+\noindent
+
+\CourseCode \hfill \Category
+
+\begin{center}
+Reading Report \#\ReportNo\\
+Paper: \PaperTitle\\
+Student: \Author\\
+\end{center}
+
+% A horizontal split line
+\hrule\smallskip
+\vspace{1.5em}
+I would like to \textbf{criticize} that the author did not give a lot of weight
+to the \textbf{scalability} of the networks in his paper. In the 
+\emph{Introduction} section, he brought up three types of networks:
+\emph{Centralized}, \emph{Decentralized} and \emph{Distributed
+  networks}. After briefly describing the drawbacks of centralized and
+decentralized networks in terms of survivability after nuclear
+attack, he completely turned into the examination of the distributed
+networks. It is very understandable that under that specific cold war
+context, survivability should be the main focus.  
+However, it is not convincing to me that decentralized
+networks are also vulnerable, the reason ``destruction of a small
+number of nodes in a decentralized network can destroy
+communications'' is not sound enough. It really depends on the scale
+of the networks. Actually, the decentralized
+topology looks much like the current Internet. And at the time the
+paper was written, building a complete distributed network might not be
+feasible.
+
+I am interested in this question: ``\emph{What was the scale of the network
+the author intended to build in reality?}''. The author seemed being
+vague about this. He just mentioned a $18\times18$-array network was
+built for simulation, which is definitely not a large-scale network.
+
+I believe that scalability is important for choosing the right
+structure for networks. Building a large-scale complete distributed
+network with redundancy level of 3 or 4 might not be feasible. On the
+other hand, decentralized topology seems appealing to me in the way
+that it manages a group of computers (all connected to a local switch)
+in a cloud and let the switch talk to the outside. In doing this, we
+can build large-scale networks recursively. This is basically how we
+build Internet today.
+
+Since at the end of the paper, the author briefly envisioned the
+future complex networks that could span continents,  
+I would like to do the following to follow up his work:\\
+
+\begin{enumerate}[nolistsep]
+\item Talk about the importance of the scalability for computer
+  networks.
+\item Simulate a decentralized network with a relatively large size. I
+  will make the redundancy level very high (5 or 6) between switch
+  nodes. Then simulate a distributed network with the same size with
+  redundancy level of 3 or 4.
+\item Evaluate and compare the two types of networks based on the
+  simulation results.
+\item Argue that though for small scale networks,
+  decentralized topology is not as reliable as the distributed one, for
+  relatively large scale networks, decentralized topology is good
+  enough to survive after destruction because there are many switch
+  nodes in the network and redundancy level among them is very high.
+\item Argue that decentralized networks are much more scalable than
+  complete distributed networks, so it is much more feasible to build
+  large-scale decentralized networks in reality.
+\item Argue that the separation of computer nodes and switch nodes
+  makes it easier to provide common services to network users and
+  build logical channels between end users. While in a distributed
+  networks, every node basically is a switch, it needs to take
+  care of message routing itself. The separation of concerns in the
+  decentralized networks provides a better abstraction.
+\end{enumerate}
+
+\end{document}
