@@ -1,0 +1,90 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% LaTeX template for summary of papers
+% Author: Shuo Yang
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass[11pt]{article}
+\usepackage{amsmath,amssymb,epsfig,graphics,hyperref,amsthm,mathtools,enumitem}
+\DeclarePairedDelimiter\ceil{\lceil}{\rceil}
+\DeclarePairedDelimiter\floor{\lfloor}{\rfloor}
+
+\hypersetup{colorlinks=true}
+
+\setlength{\textwidth}{7in}
+\setlength{\topmargin}{-0.575in}
+\setlength{\textheight}{9.25in}
+\setlength{\oddsidemargin}{-.25in}
+\setlength{\evensidemargin}{-.25in}
+
+\reversemarginpar
+\setlength{\marginparsep}{-15mm}
+
+\newcommand{\rmv}[1]{}
+\newcommand{\bemph}[1]{{\bfseries\itshape#1}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\imply}{\to}
+\newcommand{\bic}{\leftrightarrow}
+
+% Some user defined strings for the homework assignment
+%
+\def\CourseCode{CS525}
+\def\WeekNo{1}
+\def\PaperNo{1}
+\def\Category{Paper Summary}
+\def\PaperTitle{On Distributed Communications Networks}
+\def\Author{Shuo Yang}
+
+\begin{document}
+
+\noindent
+
+\CourseCode \hfill \Category
+
+\begin{center}
+Week \#\WeekNo\\
+Paper Summary \#\PaperNo\\
+Paper: \PaperTitle\\
+Student: \Author\\
+\end{center}
+
+% A horizontal split line
+\hrule\smallskip
+
+% First Pass:
+% Carefully read abstract, intro, main design, and conclusions.
+% Skim analysis/evaluation section.
+\section{First Pass}
+
+\emph{Carefully read abstract, intro, main design, and
+  conclusions. Skim analysis/evaluation section.}
+
+\subsection{What is the goal?}
+
+\subsection{What is the specific problem?}
+
+\subsection{What is the context (background, previous work,
+  assumption)?} 
+
+\subsection{What is the main idea of the paper?}
+
+% Second Pass:
+% Start with the assumption that the main point is wrong, even if you
+% agree with it.
+% Focus on analysis/evaluation sections and the details of the design.
+% How do the results prove otherwise?
+% What are the weak points?
+\section{Second Pass}
+
+\emph{Start with the assumption that the main point is wrong, even if
+  you agree with it. Focus on analysis/evaluation sections and the
+  details of the design. (How do the results prove otherwise?) What
+  are the weak points?}
+
+\subsection{How do the results prove otherwise?}
+\emph{How do the results prove that my assumption (that the main point
+  is wrong) is wrong?}
+
+\subsection{What are the weak points?}
+
+\end{document}
