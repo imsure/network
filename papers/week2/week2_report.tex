@@ -1,0 +1,117 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% LaTeX template for reading report
+% Author: Shuo Yang
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass[11pt]{article}
+\usepackage{amsmath,amssymb,epsfig,graphics,hyperref,amsthm,mathtools,enumitem}
+\DeclarePairedDelimiter\ceil{\lceil}{\rceil}
+\DeclarePairedDelimiter\floor{\lfloor}{\rfloor}
+
+\hypersetup{colorlinks=true}
+
+\setlength{\textwidth}{7in}
+\setlength{\topmargin}{-0.575in}
+\setlength{\textheight}{9.25in}
+\setlength{\oddsidemargin}{-.25in}
+\setlength{\evensidemargin}{-.25in}
+
+\reversemarginpar
+\setlength{\marginparsep}{-15mm}
+
+\newcommand{\rmv}[1]{}
+\newcommand{\bemph}[1]{{\bfseries\itshape#1}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\imply}{\to}
+\newcommand{\bic}{\leftrightarrow}
+
+% Some user defined strings for the homework assignment
+%
+\def\CourseCode{CS525}
+\def\ReportNo{2}
+\def\Category{Reading Report}
+\def\PaperTitle{End-to-End Argument in System Design}
+\def\Author{Shuo Yang}
+
+\begin{document}
+
+\noindent
+
+\CourseCode \hfill \Category
+
+\begin{center}
+Reading Report \#\ReportNo\\
+Paper: \PaperTitle\\
+Student: \Author\\
+\end{center}
+
+% A horizontal split line
+\hrule\smallskip
+\vspace{1.5em}
+
+The entire paper is based on this line of reasoning: \emph{``The function in
+question can completely and correctly be implemented only with the
+knowledge and help of the application standing at the end points of
+the communication system. Therefore, providing that questioned
+function as a feature of the communication system itself is not
+possible.''}.
+
+I would argue that this line of reasoning has some weak points which
+need to be addressed in order to apply it in reality, especially under
+the context of the current Internet.
+
+\begin{enumerate}
+\item The paper doesn't say exactly what \emph{complete and
+  correct implementation of a function} means. Does it mean the
+  fidelity of data being transferred, or integrity, or something else?
+  I think it varies by applications. For example, for file transfer
+  application, we want to achieve integrity of data, but for video
+  conference, we want to ensure that video and audio data be
+  streamed in real time and in sync, some loss of quality is
+  tolerable. 
+\item Further, the paper draws an absolute line for a function in
+  question. That is, it can be either implemented ``completely and
+  correctly'' or not. This is not true. Actually, for file transfer
+  application, reliable file transmission 
+  cannot be 100\% guaranteed. For example, even with ``end
+  to end checksum of the file'' mentioned in the paper, there is a
+  still slight chance that data could be altered in the path from
+  source to destination while the destination sees the checksum as
+  expected. This is due to the probabilistic nature of the checksum
+  algorithm. 
+\item The argument is justified mostly by the ``careful file
+  transfer'' example used in the paper. But in reality, network
+  applications are rich in variety. While \emph{end-to-end argument}
+  is effective for bulk data transfer applications like FTP and
+  BitTorrent, it may need careful evaluation for applications like
+  video streaming or instant messaging. This is especially true when
+  considering the current Internet filled with complex and interactive
+  multimedia applications with different cost and needs for quality of
+  services.
+\item Under the context of the current Internet, we need to rethink
+  about the idea of ``dumb network'' and ``pushing the logic to the end
+  points'' which are advocated by \emph{end-to-end argument}. This
+  idea has made the regular home network very complex 
+  already. Considering the emerging mobile ad hoc network and Internet
+  of Things, 
+  they all feature thin client, which means we have to push some functions
+  into network itself to make them work properly. These emerging
+  networks demand new requirements to Internet, and make the
+  \emph{end-to-end argument} not hold under specific context.
+\item The paper dose not go deep to give the detailed guidelines of
+  how to apply 
+  the \emph{end-to-end argument} in practice. Just letting application
+  programmers implement complex logic seems a horrible idea. Should
+  there be libraries to do these? Should we do these at the kernel space
+  or user space? These questions remain relevant in network system
+  design.
+\end{enumerate}
+
+\emph{Conclusion}: with the changing requirements of the Internet, we
+need to 
+carefully evaluate and apply the \emph{end-to-end argument} in a
+context-sensitive manner, rather than adopting it as a general design
+principle/rule for network system.
+
+\end{document}

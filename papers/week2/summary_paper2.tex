@@ -1,0 +1,138 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% LaTeX template for summary of papers
+% Author: Shuo Yang
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass[11pt]{article}
+\usepackage{amsmath,amssymb,epsfig,graphics,hyperref,amsthm,mathtools,enumitem}
+\DeclarePairedDelimiter\ceil{\lceil}{\rceil}
+\DeclarePairedDelimiter\floor{\lfloor}{\rfloor}
+
+\hypersetup{colorlinks=true}
+
+\setlength{\textwidth}{7in}
+\setlength{\topmargin}{-0.575in}
+\setlength{\textheight}{9.25in}
+\setlength{\oddsidemargin}{-.25in}
+\setlength{\evensidemargin}{-.25in}
+
+\reversemarginpar
+\setlength{\marginparsep}{-15mm}
+
+\newcommand{\rmv}[1]{}
+\newcommand{\bemph}[1]{{\bfseries\itshape#1}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\imply}{\to}
+\newcommand{\bic}{\leftrightarrow}
+
+% Some user defined strings for the homework assignment
+%
+\def\CourseCode{CS525}
+\def\WeekNo{2}
+\def\PaperNo{2}
+\def\Category{Paper Summary}
+\def\PaperTitle{End-to-End Argument in System Design}
+\def\Author{Shuo Yang}
+
+\begin{document}
+
+\noindent
+
+\CourseCode \hfill \Category
+
+\begin{center}
+Week \#\WeekNo\\
+Paper Summary \#\PaperNo\\
+Paper: \PaperTitle\\
+Student: \Author\\
+\end{center}
+
+% A horizontal split line
+\hrule\smallskip
+
+% First Pass:
+% Carefully read abstract, intro, main design, and conclusions.
+% Skim analysis/evaluation section.
+\section{First Pass}
+
+\emph{Carefully read abstract, intro, main design, and
+  conclusions. Skim analysis/evaluation section.}
+
+\subsection{What is the goal?}
+The paper proposes a design principle called \emph{end-to-end
+  argument} for distributed computer systems, articulates the argument
+explicitly, so as to examine its nature and to see how general it
+really is. 
+
+\subsection{What is the specific problem?}
+Choosing the proper boundaries between functions is the key for
+computer system design. 
+
+\subsection{What is the context (background, previous work,
+  assumption)?} 
+\emph{Background}: a class of function placement argument has been
+used for many years with neither explicit recognition nor much
+conviction;the emergence of the computer networks.\\
+\emph{Assumptions}: The function in question can completely and
+correctly be implemented only with the knowledge and help of the
+application standing at the end points of the communication system.
+
+\subsection{What is the main idea of the paper?}
+The argument appeals to application requirements, and provides a
+rationale for moving function upward in a layered system, closer to
+the application that uses the function. The lower levels need not
+provide ``perfect'' reliability.
+
+
+% Second Pass:
+% Start with the assumption that the main point is wrong, even if you
+% agree with it.
+% Focus on analysis/evaluation sections and the details of the design.
+% How do the results prove otherwise?
+% What are the weak points?
+\section{Second Pass}
+
+\emph{Start with the assumption that the main point is wrong, even if
+  you agree with it. Focus on analysis/evaluation sections and the
+  details of the design. (How do the results prove otherwise?) What
+  are the weak points?}
+
+\subsection{How do the results prove otherwise?}
+\emph{How do the results prove that my assumption (that the main point
+  is wrong) is wrong?}
+
+Start with an example of ``reliable file transfer'', the authors argues
+even if the communication system provides low-level reliable data
+transmission, it still cannot guarantee the reliability since correct
+file transmission is assured by the end-to-end checksum and retry
+whether or not the data transmission system is especially reliable.
+
+Based on this example, the authors argue that ``in order to achieve
+careful file transfer, the application program that performs the
+transfer must supply a file-transfer-specific, end-to-end reliability
+guarantee''.
+
+Then from performance aspects, the authors argue that the lower levels
+need not provide ``perfect'' reliability. Thus the amount of effort to
+put into reliability measures within the data communication system is
+seen to be an engineering tradeoff based on performance, rather than a
+requirement for correctness. But authors raise the concern of
+justifying the placing of functions in low-level subsystem using
+performance, that is: 1) the lower level subsystem is
+common to many applications, those applications that do not need the
+function will pay for it anyway; 2) the low-level subsystem may not
+have as much information as the higher levels, so it cannot do the job
+as efficiently.
+
+Then the authors use serveral other examples to justify their point.
+
+\subsection{What are the weak points?}
+\begin{enumerate}
+\item Most arguments are based on file transfer example.
+\item Did not draw the scope of network applications.
+\item What are application functions?
+\item ?
+\end{enumerate}
+
+\end{document}
