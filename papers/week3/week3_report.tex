@@ -1,0 +1,113 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% LaTeX template for reading report
+% Author: Shuo Yang
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass[11pt]{article}
+\usepackage{amsmath,amssymb,epsfig,graphics,hyperref,amsthm,mathtools,enumitem}
+\DeclarePairedDelimiter\ceil{\lceil}{\rceil}
+\DeclarePairedDelimiter\floor{\lfloor}{\rfloor}
+
+\hypersetup{colorlinks=true}
+
+\setlength{\textwidth}{7in}
+\setlength{\topmargin}{-0.575in}
+\setlength{\textheight}{9.25in}
+\setlength{\oddsidemargin}{-.25in}
+\setlength{\evensidemargin}{-.25in}
+
+\reversemarginpar
+\setlength{\marginparsep}{-15mm}
+
+\newcommand{\rmv}[1]{}
+\newcommand{\bemph}[1]{{\bfseries\itshape#1}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\imply}{\to}
+\newcommand{\bic}{\leftrightarrow}
+
+% Some user defined strings for the homework assignment
+%
+\def\CourseCode{CS525}
+\def\ReportNo{3}
+\def\Category{Reading Report}
+\def\PaperTitle{The Revised ARPANET Routing Metric}
+\def\Author{Shuo Yang}
+
+\begin{document}
+
+\noindent
+
+\CourseCode \hfill \Category
+
+\begin{center}
+Reading Report \#\ReportNo\\
+Paper: \PaperTitle\\
+Student: \Author\\
+\end{center}
+
+% A horizontal split line
+\hrule\smallskip
+\vspace{1.5em}
+
+The revised metrics and its implementation HN-SPF proposed by the
+paper improved routing in the ARPANET substantially compared to the
+previous alternatives (min-hop and D-SPF). However, the paper does not
+give good enough technical details for others to repeat or improve their
+work. It also leaves some open questions yet to be answered. Therefore
+I will first list weaknesses of the paper and then state what I would
+do to make up these weaknesses.
+
+First, the paper is being vague about how they chose
+parameters/coefficients for the revised metric.
+For example, it limits the relative cost for a link can
+report to be no more than two additional hops in a homogeneous
+network. No justification was made for this number.
+In addition, the revised metric puts upper and
+lower bounds on the cost that can be reported by each link. But they
+did not talk about how they chose this upper and lower bound, what
+criteria they used and how they would justify their choices. Further,
+how to adjust normalization parameters based on link type remains
+unanswered. Is it done by 
+hand or by program? Is it static for each link type or dynamically
+adaptive?
+Without knowing these, it is very hard to repeat their work. Moreover,
+we need answers to these questions in order to evaluate if the revised
+metrics can be scaled to more diverse networks with many link
+types. For complex networks, hand-tuning parameters sounds a horrible
+idea. 
+
+
+Second, the pseudo code for HN-SPF is hard to understand without being
+given more detailed explanations.
+
+Third, the paper shows that HN-SPF can oscillate around its
+equilibrium with a bounded amplitude. But it does not talk about how
+we could eliminate this problem. This minor oscillation can cause more
+network traffic.
+
+To address the first problem, I will elaborate the reasons for
+choosing those normalization parameters. Try to argue that they are
+optimal or sub-optimal, or give theoretical background to justify the
+choices, or at least give heuristics for hand-tuning those
+numbers to achieve better performance.
+
+To address the second problem, I will rewrite the pseudo code for
+HN-SPN to make it easier for readers to understand and give more
+detailed explanations about it. Thus they can reproduce the
+work for further improvement.
+
+To address the third problem, I will talk about how we could possibly
+eliminate the oscillation around the equilibrium. My thinking is that
+if each router is aware of as soon as it enters the oscillation region,
+we can avoid oscillation by using some different metrics calculation
+strategy or by changing the way network responses. For example, we can
+employ a different link cost function which only applies to the
+oscillation region. It can be as simple as changing the update limits
+(maximum \& minimum changes allowed) for link cost value, or can be a
+complicated formula. The idea is that the routing metrics should
+be adaptive to the dynamic changes in networks. The assumption,
+though, is that routers are sensitive to the equilibrium state and
+oscillation region.
+
+\end{document}
