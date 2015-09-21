@@ -1,0 +1,113 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% LaTeX template for reading report
+% Author: Shuo Yang
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass[11pt]{article}
+\usepackage{amsmath,amssymb,epsfig,graphics,hyperref,amsthm,mathtools,enumitem}
+\DeclarePairedDelimiter\ceil{\lceil}{\rceil}
+\DeclarePairedDelimiter\floor{\lfloor}{\rfloor}
+
+\hypersetup{colorlinks=true}
+
+\setlength{\textwidth}{7in}
+\setlength{\topmargin}{-0.575in}
+\setlength{\textheight}{9.25in}
+\setlength{\oddsidemargin}{-.25in}
+\setlength{\evensidemargin}{-.25in}
+
+\reversemarginpar
+\setlength{\marginparsep}{-15mm}
+
+\newcommand{\rmv}[1]{}
+\newcommand{\bemph}[1]{{\bfseries\itshape#1}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\imply}{\to}
+\newcommand{\bic}{\leftrightarrow}
+
+% Some user defined strings for the homework assignment
+%
+\def\CourseCode{CS525}
+\def\ReportNo{4}
+\def\Category{Reading Report}
+\def\PaperTitle{Delayed Internet Routing Convergence}
+\def\Author{Shuo Yang}
+
+\begin{document}
+
+\noindent
+
+\CourseCode \hfill \Category
+
+\begin{center}
+Reading Report \#\ReportNo\\
+Paper: \PaperTitle\\
+Student: \Author\\
+\end{center}
+
+% A horizontal split line
+\hrule\smallskip
+\vspace{1.5em}
+
+The paper's strength lies in their experimental instrumentation of key
+portions of the Internet without solely relying on simulation results, 
+and the BGP convergence behaviors they observed based on the 2-year
+long data collection. The experiment results are convincing, but their
+analysis is not that convincing when they tried to justify their
+observations. 
+
+\vspace{0.5em}
+They adopted an oversimplified BGP convergence model for analysis. For
+example, modeling each AS as a single node, choosing a full mesh
+network topology, unbounded delay and treating a BGP processing as a
+single linear, global queue, etc. These assumptions do not reflect the
+reality of the Internet, thus cannot be used as a good indicator for
+BGP convergence. They spent lots of time talking about upper bound and
+lower bound on convergence. But both of these bounds are unlikely to
+occur in practice. Unfortunately, they further analyzed the results
+based on this oversimplified model to back up their previous mentioned
+results. It gives me the feeling that their analysis does not make
+the results more convincing, though intuitively, these results do make
+sense.
+
+\vspace{0.5em}
+In general, the model and analysis appears in such a way that they
+seems to be used to deliberately justify the experiment results and
+observations.
+
+\vspace{0.5em}
+I would argue that trying to build an analytical model for BGP
+convergence may not be feasible due to the complex nature of the
+Internet thus should not be used to back up the experiment
+results. Rather, we need to shift our focus to the data itself. The
+date set collected during 
+the 2-year's experiment is a valuable resource which are worthy of
+exploring since they are real Internet inter-domain routing
+data. Unlike simplified BGP convergence model, these data cannot lie
+and should reflect the reality of the Internet. Thus it matters how we
+are going to use and interpret the data. The simple
+exploratory data analysis combined with some basic data visualization
+techniques might be the first step for us to get some insights into why
+Internet behaves in such way. The more-in-depth and complicated data
+analysis with advanced data visualization can be applied to follow
+up.
+
+\vspace{0.5em}
+I also noticed that the paper always
+present figures with a subset of data and a cutoff scale for clarity
+purpose. They also mentioned correlation between observations in a
+couple of places in the paper without using large amount of data and
+visualization to 
+backup this correlation. These might be a sign that they did not do
+many in-depth data analysis and visualization, which is something they
+could have done for improvement and more sound results.
+
+\vspace{0.5em}
+Overall, the paper is strong in its first part (section 1,2,3 and 4),
+but weak in second part (section 5 and 6). It is a good engineering
+practice to measure the Internet BGP convergence behavior along with
+their sharp observations, but it is lack of mature theoretical and
+analysis support.
+
+\end{document}
