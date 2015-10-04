@@ -1,0 +1,112 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% LaTeX template for reading report
+% Author: Shuo Yang
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass[11pt]{article}
+\usepackage{amsmath,amssymb,epsfig,graphics,hyperref,amsthm,mathtools,enumitem}
+\DeclarePairedDelimiter\ceil{\lceil}{\rceil}
+\DeclarePairedDelimiter\floor{\lfloor}{\rfloor}
+
+\hypersetup{colorlinks=true}
+
+\setlength{\textwidth}{7in}
+\setlength{\topmargin}{-0.575in}
+\setlength{\textheight}{9.25in}
+\setlength{\oddsidemargin}{-.25in}
+\setlength{\evensidemargin}{-.25in}
+
+\reversemarginpar
+\setlength{\marginparsep}{-15mm}
+
+\newcommand{\rmv}[1]{}
+\newcommand{\bemph}[1]{{\bfseries\itshape#1}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\imply}{\to}
+\newcommand{\bic}{\leftrightarrow}
+
+% Some user defined strings for the homework assignment
+%
+\def\CourseCode{CS525}
+\def\ReportNo{5}
+\def\Category{Reading Report}
+\def\PaperTitle{On inferring autonomous system relationships in the Internet}
+\def\Author{Shuo Yang}
+
+\begin{document}
+
+\noindent
+
+\CourseCode \hfill \Category
+
+\begin{center}
+Reading Report \#\ReportNo\\
+Paper: \PaperTitle\\
+Student: \Author\\
+\end{center}
+
+% A horizontal split line
+\hrule\smallskip
+\vspace{1.5em}
+
+In the paper, the author proved that the AS path in any BGP routing
+table entry is valley-free based on the assumption that all ASs set
+their export policies according to the selective export rule. But in
+reality, not all ASs stick to the this export policy. Thus, not all AS
+paths are valley free. Also, as author mentioned in the paper,
+sometimes the top provider does not have the highest degree. Because
+of these inaccuracies and also because of BGP data collected by
+route-view project is only a partial view of the Internet, it is very
+hard to accurately infer AS relationships.
+
+\vspace{0.5em}
+However, if we took a different view towards the given BGP data, we
+might get some interesting results back. First, we have the data that
+reflects the BGP routing of the Internet. Second, we know that
+in the ideal situation, all inter-domain routing should be valley
+free. Thus, we can explore the BGP data to identify those
+non-valley-free BGP paths that violate the agreed upon export
+policy. In detail, we would like to know to what extent
+non-valley-free BGP paths exist in current Internet. For example, how
+many non-valley-free BGP paths were advertised during a fixed time
+period? What percentage do they take from the total BGP paths? We also
+want to find out what
+are the reasons that cause these violations (deliberately or due to
+misconfigurations)? Is there any common pattern of violations hidden
+behind the scenes? What are the source ASs of these violations?
+And further we can evaluate how do these violations impact the Internet
+routing? 
+
+\vspace{0.5em}
+Answering these questions can benefit many parties with different
+interests.
+\vspace{0.5em}
+\begin{itemize}[nolistsep]
+\item Routing policy maker can enforce additional rules to minimize
+  such violations.
+\item Researchers and organizations can develop better tools for
+  detecting and preventing such violations.
+\item Researchers and organizations can develop or improve
+  inter-domain routing protocols to prevent producing or propagating
+  such non-valley-free BGP paths.
+\item ISPs can plan for better future contractual agreements.
+\end{itemize}
+
+\vspace{0.5em}
+To answer these questions, we need to:
+\vspace{0.5em}
+\begin{itemize}[nolistsep]
+\item develop techniques to identify those BGP paths that are not
+  valley-free from the collected BGP data. 
+\item classify BGP paths that are not valley-free, that is, is it on
+  a customer-to-provider edge or peer-to-peer edge?
+\item develop methodology to evaluate the impact of these violations.
+\item develop methods to prevent such violations.
+\end{itemize}
+
+\vspace{0.5em}
+Another thing worth mentioning is that we should be able to use the
+inferred AS relationships proposed by the paper to verify our results.
+
+\end{document}
