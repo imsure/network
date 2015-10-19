@@ -56,16 +56,67 @@ void sr_init(struct sr_instance* sr)
  *---------------------------------------------------------------------*/
 
 void sr_handlepacket(struct sr_instance* sr, 
-        uint8_t * packet/* lent */,
-        unsigned int len,
-        char* interface/* lent */)
+		     uint8_t * packet/* lent */,
+		     unsigned int len,
+		     char* interface/* lent */)
 {
-    /* REQUIRES */
-    assert(sr);
-    assert(packet);
-    assert(interface);
+  uint8_t *ether_shost, *ether_thost;
+  uint16_t ether_type;
+  uint32_t ar_sip, ar_tip;
+  int i;
+  
+  struct sr_if* iface = sr_get_interface(sr, interface); // get the ethernet interface
+  struct sr_ethernet_hdr* e_hdr = 0; // Ethernet header
+  struct sr_arphdr*       a_hdr = 0; // ARP header
 
-    printf("*** -> Received packet of length %d \n",len);
+  /* REQUIRES */
+  assert(sr);
+  assert(packet);
+  assert(interface);
+
+  printf("*** -> Received packet of length %d \n",len);
+
+  e_hdr = (struct sr_ethernet_hdr*) packet;
+  a_hdr = (struct sr_arphdr*) (packet + sizeof(struct sr_ethernet_hdr));
+
+  /* Extract sender MAC and IP which becomes destination */
+  ether_shost = e_hdr->ether_shost;
+  ar_sip = a_hdr->ar_sip;
+  //  DebugMAC(ether_shost);
+  //  DebugIP(ar_sip);
+  //  printf("Sender IP: %u\n", ntohl(ar_sip));
+
+  /* Extract target IP in order to get target MAC. */
+  ar_tip = a_hdr->ar_tip;
+  //  DebugIP(ar_tip);
+  //  printf("Target IP: %u\n", ntohl(ar_tip));
+
+  ether_thost = iface->addr; // target host MAC
+
+  /*-- Construct ARP reply in place, ie, modify 'packet' buffer directly. --*/
+
+  /* Ethernet header: Sender becomes target */
+  for (i = 0; i < 6; ++i) {
+    e_hdr->ether_dhost[i] = e_hdr->ether_shost[i];
+    a_hdr->ar_tha[i] = ether_shost[i];
+  }
+
+  /* Ethernet header: fill sender's MAC */
+  for (i = 0; i < 6; ++i) {
+    e_hdr->ether_shost[i] = ether_thost[i];
+  }
+
+  /* ARP header */
+  a_hdr->ar_op = htons(0x2);
+  for (i = 0; i < 6; ++i) {
+    a_hdr->ar_sha[i] = ether_thost[i];
+  }
+  a_hdr->ar_tip = ar_sip;
+  a_hdr->ar_sip = iface->ip;
+
+  //  DebugMAC(e_hdr->ether_dhost);
+
+  sr_send_packet(sr, packet, len, interface);
 
 }/* end sr_ForwardPacket */
 

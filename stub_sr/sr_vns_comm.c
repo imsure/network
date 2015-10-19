@@ -432,6 +432,7 @@ int sr_read_from_server_expect(struct sr_instance* sr /* borrowed */, int expect
     }
 
     ret = 1;
+    // Debug("VNS Command: %d\n", command);
     switch (command)
     {
         /* -------------        VNSPACKET     -------------------- */
