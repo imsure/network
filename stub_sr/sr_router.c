@@ -19,6 +19,8 @@
 #include "sr_rt.h"
 #include "sr_router.h"
 #include "sr_protocol.h"
+#include "sr_arp.h"
+#include "sr_ip.h"
 
 /*--------------------------------------------------------------------- 
  * Method: sr_init(void)
@@ -60,63 +62,34 @@ void sr_handlepacket(struct sr_instance* sr,
 		     unsigned int len,
 		     char* interface/* lent */)
 {
-  uint8_t *ether_shost, *ether_thost;
-  uint16_t ether_type;
-  uint32_t ar_sip, ar_tip;
-  int i;
-  
-  struct sr_if* iface = sr_get_interface(sr, interface); // get the ethernet interface
-  struct sr_ethernet_hdr* e_hdr = 0; // Ethernet header
-  struct sr_arphdr*       a_hdr = 0; // ARP header
-
   /* REQUIRES */
   assert(sr);
   assert(packet);
   assert(interface);
 
-  printf("*** -> Received packet of length %d \n",len);
+  struct sr_if *iface = sr_get_interface(sr, interface); // get the ethernet interface
+  struct sr_ethernet_hdr *e_hdr = (struct sr_ethernet_hdr*) packet; // Ethernet header
+  struct sr_arphdr *a_hdr; // ARP header
+  struct ip *ip_hdr; // IP header
 
-  e_hdr = (struct sr_ethernet_hdr*) packet;
-  a_hdr = (struct sr_arphdr*) (packet + sizeof(struct sr_ethernet_hdr));
+  printf("*** -> Received packet of length %d (ether_type=%04x)\n",
+	 len, ntohs(e_hdr->ether_type));
 
-  /* Extract sender MAC and IP which becomes destination */
-  ether_shost = e_hdr->ether_shost;
-  ar_sip = a_hdr->ar_sip;
-  //  DebugMAC(ether_shost);
-  //  DebugIP(ar_sip);
-  //  printf("Sender IP: %u\n", ntohl(ar_sip));
-
-  /* Extract target IP in order to get target MAC. */
-  ar_tip = a_hdr->ar_tip;
-  //  DebugIP(ar_tip);
-  //  printf("Target IP: %u\n", ntohl(ar_tip));
-
-  ether_thost = iface->addr; // target host MAC
-
-  /*-- Construct ARP reply in place, ie, modify 'packet' buffer directly. --*/
-
-  /* Ethernet header: Sender becomes target */
-  for (i = 0; i < 6; ++i) {
-    e_hdr->ether_dhost[i] = e_hdr->ether_shost[i];
-    a_hdr->ar_tha[i] = ether_shost[i];
+  switch(ntohs(e_hdr->ether_type)) {
+  case ETHERTYPE_ARP:
+    a_hdr = (struct sr_arphdr *)(packet + sizeof(struct sr_ethernet_hdr));
+    if (iface->ip == a_hdr->ar_tip) // am I the target of ARP request?
+      sr_arp_reply(sr, packet, len, interface);
+    else
+      fprintf(stderr, "Get an ARP request not targeted to me!\n");
+    break;
+  case ETHERTYPE_IP:
+    ip_hdr = (struct ip *)(packet + sizeof(struct sr_ethernet_hdr));
+    Debug("Received an IP packet (%d bytes): ttl=%d, checksum=%d, protocol=%d\n",
+	  ip_hdr->ip_len, ip_hdr->ip_ttl, ip_hdr->ip_sum, ip_hdr->ip_p);
+    sr_ip_handler(sr, packet, len, interface);
+    break;
   }
-
-  /* Ethernet header: fill sender's MAC */
-  for (i = 0; i < 6; ++i) {
-    e_hdr->ether_shost[i] = ether_thost[i];
-  }
-
-  /* ARP header */
-  a_hdr->ar_op = htons(0x2);
-  for (i = 0; i < 6; ++i) {
-    a_hdr->ar_sha[i] = ether_thost[i];
-  }
-  a_hdr->ar_tip = ar_sip;
-  a_hdr->ar_sip = iface->ip;
-
-  //  DebugMAC(e_hdr->ether_dhost);
-
-  sr_send_packet(sr, packet, len, interface);
 
 }/* end sr_ForwardPacket */
 
