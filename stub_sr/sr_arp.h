@@ -27,7 +27,7 @@
 #include "sr_if.h"
 #include "sr_protocol.h"
 
-#define SR_ARPCACHE_SIZE 128 // # of cache entries
+#define SR_ARPCACHE_SIZE 10 // # of cache entries
 #define SR_ARPCACHE_TIME_OUT 15.0 // 15 seconds
 
 struct sr_instance;
@@ -72,12 +72,23 @@ void sr_arp_send_reply(struct sr_instance* sr,
 		       uint8_t * packet/* lent */,
 		       unsigned int len,
 		       char* interface/* lent */);
+void sr_arp_handle_reply(struct sr_instance* sr, uint8_t * packet,
+			 unsigned int len, char* interface);
+void sr_arp_send_request(struct sr_instance* sr, struct sr_arp_request *req);
+
 
 void *sr_arpcache_timeout_handler(void *sr_ptr);
-struct sr_arpcache_entry *sr_arpcache_search(struct sr_arpcache *arpcache, uint32_t ip);
 struct sr_arpcache_entry *sr_arpcache_search(struct sr_arpcache *arpcache, uint32_t ip);
 struct sr_arp_request *sr_arpreq_enqueue(struct sr_arpcache *arpcache,
 					 uint32_t ip, uint8_t *packet,
 					 unsigned int len, char *iface_out);
+struct sr_arp_request *sr_arpcache_insert(struct sr_arpcache *arpcache,
+					  uint32_t ip, unsigned char *mac);
+void sr_arpreq_destroy(struct sr_arpcache *arpcache,
+		       struct sr_arp_request *arpreq);
+void sr_arpcache_dump(struct sr_arpcache *arpcache);
+int sr_arpcache_init(struct sr_arpcache *arpcache);
+void sr_arpcache_destroy(struct sr_arpcache *arpcache);
+void sr_arpcache_handle_request(struct sr_instance *sr, struct sr_arp_request *req);
 
 #endif /* --  sr_ARP_H -- */

@@ -29,5 +29,8 @@ void sr_ip_handler(struct sr_instance* sr, uint8_t * packet, unsigned int len);
 int send_to_self(struct sr_instance *sr, struct ip *ip_hdr);
 uint32_t sr_router_default_nexthop(struct sr_instance* sr);
 uint32_t sr_router_nexthop(struct sr_instance* sr, uint32_t target_ip);
+void sr_ip_send_packet(struct sr_instance* sr,
+		       struct sr_ip_packet *packet,
+		       unsigned char *dest_mac);
 
 #endif /* --  sr_IP_H -- */

@@ -146,6 +146,12 @@ void sr_ip_forward(struct sr_instance* sr, uint8_t * packet,
     sr_arpcache_handle_request(sr, req);
   } else {
     printf("ARP cache entry found\n");
+
+    struct sr_ip_packet ip_packet;
+    ip_packet.buf = packet;
+    ip_packet.len = len;
+    ip_packet.iface_out = iface_out;
+    sr_ip_send_packet(sr, &ip_packet, entry->mac);
   }
 
   /* Step 2-2:  */
@@ -227,4 +233,66 @@ int send_to_self(struct sr_instance *sr, struct ip *ip_hdr)
   }
 
   return 0;
+}
+
+
+uint16_t checksum(struct ip *ip, int len)
+{
+  long sum = 0;  /* assume 32 bit long, 16 bit short */
+  uint16_t *ip_walker = ip;
+
+  while(len > 1) {
+    sum += *ip_walker++;
+    if(sum & 0x80000000)   /* if high order bit set, fold */
+      sum = (sum & 0xFFFF) + (sum >> 16);
+    len -= 2;
+  }
+
+  if(len)       /* take care of left over byte */
+    sum += (unsigned short) *(unsigned char *)ip_walker;
+          
+  while(sum>>16)
+    sum = (sum & 0xFFFF) + (sum >> 16);
+
+  return ~sum;
+}
+
+/*---------------------------------------------------------------------
+ * Method: sr_ip_send_packet
+ * Scope:  Global
+ *
+ *---------------------------------------------------------------------*/
+
+void sr_ip_send_packet(struct sr_instance* sr,
+		       struct sr_ip_packet *ip_packet,
+		       unsigned char *dest_mac)
+{
+  struct sr_ethernet_hdr *e_hdr;
+  struct ip *ip_hdr, *ip_hdr2;
+  uint16_t checksum_updated;
+  uint8_t *packet = ip_packet->buf;
+
+  /* Fill ethernet header with the correct MAC */
+  e_hdr = (struct sr_ethernet_hdr *) packet;
+  memcpy(e_hdr->ether_dhost, dest_mac, ETHER_ADDR_LEN);
+  struct sr_if *interface = sr_get_interface(sr, ip_packet->iface_out);
+  memcpy(e_hdr->ether_shost, interface->addr, ETHER_ADDR_LEN);
+
+  /* IP header */
+  ip_hdr = (struct ip *) (packet + sizeof(struct sr_ethernet_hdr));
+  ip_hdr->ip_ttl--; // decrement TTL by 1
+
+  ip_hdr2 = (struct ip *) malloc(sizeof(struct ip));
+  memcpy(ip_hdr2, ip_hdr, sizeof(struct ip));
+  
+  printf("Original checksum: %d\n", ip_hdr->ip_sum);
+  ip_hdr2->ip_sum = 0; // set checksum field to 0
+  checksum_updated = checksum(ip_hdr2, sizeof(struct ip));
+  ip_hdr->ip_sum = checksum_updated;
+  printf("Computed checksum: %d\n", checksum_updated);
+
+  int success = sr_send_packet(sr, packet, ip_packet->len, ip_packet->iface_out);
+  if (success != 0) {
+    fprintf(stderr, "%s: Sending packet failed!\n", __func__);
+  }
 }

@@ -19,6 +19,7 @@
 #include "sr_protocol.h"
 #include "sr_router.h"
 #include "sr_arp.h"
+#include "sr_ip.h"
 
 
 void sr_arp_send_request(struct sr_instance* sr, struct sr_arp_request *req)
@@ -58,7 +59,53 @@ void sr_arp_send_request(struct sr_instance* sr, struct sr_arp_request *req)
 }
 
 
+/*---------------------------------------------------------------------
+ * Method: sr_arp_handle_reply
+ * Scope:  Global
+ *
+ * This method is called each time the router receives a ARP reply
+ * packet on the 'interface'.
+ *
+ *---------------------------------------------------------------------*/
 
+void sr_arp_handle_reply(struct sr_instance* sr, uint8_t * packet,
+			 unsigned int len, char* interface)
+{
+  /* REQUIRES */
+  assert(sr);
+  assert(packet);
+  assert(interface);
+
+  struct sr_ethernet_hdr *e_hdr;
+  struct sr_arphdr *a_hdr;
+  uint32_t sender_ip;
+  unsigned char *sender_mac = (unsigned char *)malloc(ETHER_ADDR_LEN);
+  
+  e_hdr = (struct sr_ethernet_hdr*) packet;
+  a_hdr = (struct sr_arphdr *)(packet + sizeof(struct sr_ethernet_hdr));
+
+  memcpy(sender_mac, e_hdr->ether_shost, ETHER_ADDR_LEN);
+  sender_ip = a_hdr->ar_sip;
+
+  Debug("ARP reply: sender MAC: ");
+  DebugMAC(sender_mac);
+  Debug("ARP reply: sender IP: ");
+  DebugIP(sender_ip);
+
+  struct sr_arp_request *req = sr_arpcache_insert(&(sr->arpcache),
+						  sender_ip, sender_mac);
+  if (req) {
+    /* TODO: send all packets waiting for this reply. */
+    Debug("Ready to forward packets...\n");
+    struct sr_ip_packet *pkt;
+
+    for (pkt = req->packets; pkt != NULL; pkt = pkt->next) {
+      sr_ip_send_packet(sr, pkt, sender_mac);
+    }    
+    
+    sr_arpreq_destroy(&(sr->arpcache), req);
+  }
+}
 
 /*---------------------------------------------------------------------
  * Method: sr_arp_send_reply
@@ -386,7 +433,7 @@ void sr_arpcache_handle_request(struct sr_instance *sr, struct sr_arp_request *r
     if (req->sent_times >= 5) {
       /* TODO: send ICMP host unreachable to source addr of all
 	 packets waiting on this request. */
-      /* sr_arpreq_destroy(&(sr->arpcache), req) */
+      sr_arpreq_destroy(&(sr->arpcache), req);
     } else {
       sr_arp_send_request(sr, req);
       req->time_sent = time(NULL);
