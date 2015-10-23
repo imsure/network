@@ -28,8 +28,8 @@
   (unsigned char)(x[ivyl])); printf("%02x",(unsigned char)(x[5])); } while (0) \
     ;putchar('\n')
 #define DebugIP(x) \
-  do { int ivyl; unsigned char *y = &x; for(ivyl=0; ivyl<3; ivyl++) printf("%d.",	\
-  (unsigned char)(y[ivyl])); printf("%d",(unsigned char)(y[3])); } while (0) \
+  do { int ivyl; uint8_t *y = (uint8_t *)&x; for(ivyl=0; ivyl<3; ivyl++) printf("%d.", \
+  (uint8_t)(y[ivyl])); printf("%d",(uint8_t)(y[3])); } while (0) \
     ;putchar('\n')
 #else
 #define Debug(x, args...) do{}while(0)

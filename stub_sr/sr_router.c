@@ -37,7 +37,7 @@ void sr_init(struct sr_instance* sr)
 
     /* Add initialization code here! */
 
-    /* Initialize ARP cache and time out deamon thread. */
+    /* Initialize ARP cache and start time out deamon thread. */
     pthread_t arp_thread;
     sr_arpcache_init(&(sr->arpcache));
     pthread_attr_init(&(sr->attr));
@@ -78,6 +78,8 @@ void sr_handlepacket(struct sr_instance* sr,
 
   struct sr_if *iface = sr_get_interface(sr, interface); // get the ethernet interface
   struct sr_ethernet_hdr *e_hdr = (struct sr_ethernet_hdr*) packet; // Ethernet header
+
+  /* The ethernet payload can be either ARP or IP */
   struct sr_arphdr *a_hdr; // ARP header
   struct ip *ip_hdr; // IP header
 
@@ -91,8 +93,7 @@ void sr_handlepacket(struct sr_instance* sr,
       if (ntohs(a_hdr->ar_op) == ARP_REQUEST) {
 	sr_arp_send_reply(sr, packet, len, interface);
       } else if (ntohs(a_hdr->ar_op) == ARP_REPLY) {
-	/* TODO: handle ARP reply */
-	Debug("Received an ARP reply!!!!!!!!!\n");
+	//Debug("Received an ARP reply!!!!!!!!!\n");
 	sr_arp_handle_reply(sr, packet, len, interface);
       } else {
 	fprintf(stderr, "Unknown ARP opcode %d!\n", ntohs(a_hdr->ar_op));
@@ -101,9 +102,9 @@ void sr_handlepacket(struct sr_instance* sr,
       fprintf(stderr, "Get an ARP request not targeted to me!\n");
     break;
   case ETHERTYPE_IP: // IP packet
-    ip_hdr = (struct ip *)(packet + sizeof(struct sr_ethernet_hdr));
-    Debug("\nIP packet (IP datagram: %d bytes): ttl=%d, checksum=%d, protocol=%d\n",
-	  ntohs(ip_hdr->ip_len), ip_hdr->ip_ttl, ntohs(ip_hdr->ip_sum), ip_hdr->ip_p);
+    //ip_hdr = (struct ip *)(packet + sizeof(struct sr_ethernet_hdr));
+    //Debug("\nIP packet (IP datagram: %d bytes): ttl=%d, checksum=%d, protocol=%d\n",
+    //  ntohs(ip_hdr->ip_len), ip_hdr->ip_ttl, ntohs(ip_hdr->ip_sum), ip_hdr->ip_p);
     sr_ip_handler(sr, packet, len);
     break;
   }

@@ -1,0 +1,8 @@
+1. In sr_ip_handler of sr_ip.c, handle the IP packets targeted to router itself.
+2. In sr_ip_handler of sr_ip.c, verify the checksum and make sure IP packet meets
+   the minimum length requirement.
+3. In general: Implement ICMP. Need a sr_icmp.c and sr_icmp.h
+4. Send ICMP host unreachable when ARP request has been sent for 5 times without a reply.
+5. Kick out an ARP cache entry when the cache is full randomly.
+6. An script for automating testing. (mixing senarios together, ping, tracerout, wget...)
+

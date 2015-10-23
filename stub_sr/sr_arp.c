@@ -87,18 +87,21 @@ void sr_arp_handle_reply(struct sr_instance* sr, uint8_t * packet,
   memcpy(sender_mac, e_hdr->ether_shost, ETHER_ADDR_LEN);
   sender_ip = a_hdr->ar_sip;
 
-  Debug("ARP reply: sender MAC: ");
-  DebugMAC(sender_mac);
-  Debug("ARP reply: sender IP: ");
-  DebugIP(sender_ip);
+  /* Debug("ARP reply: sender MAC: "); */
+  /* DebugMAC(sender_mac); */
+  /* Debug("ARP reply: sender IP: "); */
+  /* DebugIP(sender_ip); */
 
+  /* Insert IP --> MAC to ARP cache and get the request created
+     for the inserted IP. */
   struct sr_arp_request *req = sr_arpcache_insert(&(sr->arpcache),
 						  sender_ip, sender_mac);
   if (req) {
-    /* TODO: send all packets waiting for this reply. */
-    Debug("Ready to forward packets...\n");
+    //Debug("Ready to forward packets...\n");
     struct sr_ip_packet *pkt;
 
+    /* Since sender_mac is the dest_mac for the packets wait on the 'req',
+       now we iterate through all these packets to send them out. */
     for (pkt = req->packets; pkt != NULL; pkt = pkt->next) {
       sr_ip_send_packet(sr, pkt, sender_mac);
     }    
@@ -321,8 +324,13 @@ struct sr_arp_request *sr_arpcache_insert(struct sr_arpcache *arpcache,
     arpcache->entries[i].ip = ip;
     arpcache->entries[i].time_added = time(NULL);
     arpcache->entries[i].is_valid = 1;
-  }
 
+    sr_arpcache_print_entry(&(arpcache->entries[i]));
+    Debug("Inserted at %s\n", ctime(&(arpcache->entries[i].time_added)));
+  } else { // cache is full
+    /* TODO: Kick out an ARP cache entry randomly */
+  }
+ 
   pthread_mutex_unlock( &(arpcache->lock) );
   return req;
 }
@@ -433,11 +441,15 @@ void sr_arpcache_handle_request(struct sr_instance *sr, struct sr_arp_request *r
     if (req->sent_times >= 5) {
       /* TODO: send ICMP host unreachable to source addr of all
 	 packets waiting on this request. */
+      Debug("Need to send ICMP host unreachable to ");
+      DebugIP(req->ip);
       sr_arpreq_destroy(&(sr->arpcache), req);
+      Debug("ARP request for ... destroyed\n");
     } else {
       sr_arp_send_request(sr, req);
       req->time_sent = time(NULL);
       req->sent_times++;
+      Debug("ARP request sent for %d times\n", req->sent_times);
     }
   }
 }
@@ -487,6 +499,8 @@ void *sr_arpcache_timeout_handler(void *sr_ptr)
       if ((arpcache->entries[i].is_valid) &&
 	  (time_since_added > SR_ARPCACHE_TIME_OUT)) {
 	arpcache->entries[i].is_valid = 0; // mark as invalid
+	Debug("Time out the entry ");
+	sr_arpcache_print_entry(&(arpcache->entries[i]));
       }
     }
 
@@ -497,6 +511,23 @@ void *sr_arpcache_timeout_handler(void *sr_ptr)
   }
 
   return NULL;
+}
+
+void sr_arpcache_print_entry(struct sr_arpcache_entry *entry)
+{
+  int i;
+  uint8_t *ip = (uint8_t *)&(entry->ip);
+
+  for (i = 0; i < 3; ++i) {
+    printf("%d.", ip[i]);
+  }
+  printf("%d", ip[3]);
+  printf(" ====> ");
+
+  for (i = 0; i < 5; ++i) {
+    printf("%02x:", entry->mac[i]);
+  }
+  printf("%02x\n", entry->mac[5]);
 }
 
 /************************************
