@@ -12,8 +12,10 @@
 #include <netinet/in.h>
 #include <sys/time.h>
 #include <stdio.h>
+#include <pthread.h>
 
 #include "sr_protocol.h"
+#include "sr_arp.h"
 #ifdef VNL
 #include "vnlconn.h"
 #endif
@@ -62,6 +64,8 @@ struct sr_instance
     struct sockaddr_in sr_addr; /* address to server */
     struct sr_if* if_list; /* list of interfaces */
     struct sr_rt* routing_table; /* routing table */
+    struct sr_arpcache arpcache; /* ARP cache */
+    pthread_attr_t attr; /* for ARP cache time out daemon thread */
     FILE* logfile;
 };
 

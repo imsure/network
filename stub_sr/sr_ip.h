@@ -7,8 +7,8 @@
  *
  *---------------------------------------------------------------------------*/
 
-#ifndef sr_ARP_H
-#define sr_ARP_H
+#ifndef sr_IP_H
+#define sr_IP_H
 
 #ifdef _LINUX_
 #include <stdint.h>
@@ -24,11 +24,10 @@
 
 struct sr_instance;
 
-void sr_ip_handler(struct sr_instance* sr, 
-		   uint8_t * packet/* lent */,
-		   unsigned int len,
-		   char* interface/* lent */);
+void sr_ip_handler(struct sr_instance* sr, uint8_t * packet, unsigned int len);
 
-int send_to_self(struct sr_instance *sr, struct ip ip_hdr);
+int send_to_self(struct sr_instance *sr, struct ip *ip_hdr);
+uint32_t sr_router_default_nexthop(struct sr_instance* sr);
+uint32_t sr_router_nexthop(struct sr_instance* sr, uint32_t target_ip);
 
-#endif /* --  sr_ARP_H -- */
+#endif /* --  sr_IP_H -- */

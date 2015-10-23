@@ -19,12 +19,143 @@
 #include "sr_arp.h"
 #include "sr_ip.h"
 
+
+/*---------------------------------------------------------------------
+ * Method: sr_router_default_nexthop
+ * Scope:  Global
+ *
+ * Search and return the default next hop (in network byte order).
+ *---------------------------------------------------------------------*/
+uint32_t sr_router_default_nexthop(struct sr_instance* sr)
+{
+  struct sr_rt* rt_walker = sr->routing_table;
+  uint32_t default_hop = 0;
+
+  while(rt_walker->next) {
+    if (rt_walker->mask.s_addr == 0x0 &&
+	rt_walker->dest.s_addr == 0x0) {      
+      default_hop = rt_walker->gw.s_addr;
+      break;
+    }
+    rt_walker = rt_walker->next; 
+  }
+
+  return default_hop;
+}
+
+
+/*---------------------------------------------------------------------
+ * Method: sr_router_nexthop
+ * Scope:  Global
+ *
+ * Search and return the next hop (in network byte order) of
+ * target IP 'target_ip' (in network byte order).
+ *---------------------------------------------------------------------*/
+
+uint32_t sr_router_nexthop(struct sr_instance* sr, uint32_t target_ip)
+{
+  struct sr_rt* rt_walker = sr->routing_table;
+  uint32_t nexthop = 0;
+  
+  while(rt_walker) {
+    //    printf("In rt, looking at: %s\n", inet_ntoa(rt_walker->dest));
+    if (rt_walker->mask.s_addr != 0x0) {
+      if (rt_walker->dest.s_addr == (target_ip & rt_walker->mask.s_addr)) {
+	//	printf("Next hop found: %s\n", inet_ntoa(rt_walker->dest));
+	nexthop = rt_walker->dest.s_addr;
+	break;
+      }
+    }
+    rt_walker = rt_walker->next; 
+  }
+
+  if (nexthop) return nexthop;
+  else return sr_router_default_nexthop(sr);
+}
+
+
+/*---------------------------------------------------------------------
+ * Method: sr_router_interface
+ * Scope:  Global
+ *
+ * Look up the interface associate with 'ip' in the routing table.
+ *---------------------------------------------------------------------*/
+
+char *sr_router_interface(struct sr_instance* sr, uint32_t ip)
+{
+  struct sr_rt* rt_walker = sr->routing_table;
+  char *interface = NULL;
+  
+  while(rt_walker) {
+    if ((rt_walker->dest.s_addr == ip) ||
+	(rt_walker->gw.s_addr == ip)) {
+      interface = rt_walker->interface;
+      break;
+    }
+    rt_walker = rt_walker->next; 
+  }
+
+  return interface;
+}
+
+
 /*---------------------------------------------------------------------
  * Method: sr_ip_handler
  * Scope:  Global
  *
- * This method is called each time the router receives a IP packet
- * packet on the 'interface'.
+ * Let 'sr' forward IP 'packet' with length of 'len' to target IP 'target_ip'.
+ *
+ * The packet buffer, the packet length and the receiving
+ * interface are passed in as parameters. The packet is complete with
+ * ethernet headers.
+ *
+ * HEADS UP:
+ * 'packet' we received are in big-endian, so pay attention to it!
+ *---------------------------------------------------------------------*/
+
+void sr_ip_forward(struct sr_instance* sr, uint8_t * packet,
+		   unsigned int len, uint32_t target_ip)
+{
+  /* Step 1: find the next hop in the routing table and the interface
+     through which to send the packet to the next hop. */
+  uint32_t nexthop = sr_router_nexthop(sr, target_ip);
+  char *iface_out = sr_router_interface(sr, nexthop);
+
+  Debug("Target IP: ");
+  DebugIP(target_ip);
+  Debug("Next Hop: ");
+  DebugIP(nexthop);
+  Debug("Outgoing interface: %s\n", iface_out);
+
+  /* If packet destined to the application server, then use the
+     exact target IP, not the prefix in the routing table. */
+  if (nexthop != sr_router_default_nexthop(sr)) {
+    nexthop = target_ip;
+  }
+
+  /* Step 2: forward the packet. */
+  
+  /* Step 2-1: look up the ARP cache. if no MAC in the ARP
+     cache match target IP, send an ARP request via the
+     interface corresponds to nexthop. */
+  struct sr_arpcache_entry *entry = sr_arpcache_search(&(sr->arpcache), nexthop);
+  if (entry == NULL) {
+    printf("ARP cache entry not found\n");
+    struct sr_arp_request *req = sr_arpreq_enqueue(&(sr->arpcache), nexthop,
+						   packet, len, iface_out);
+    sr_arpcache_handle_request(sr, req);
+  } else {
+    printf("ARP cache entry found\n");
+  }
+
+  /* Step 2-2:  */
+}
+
+/*---------------------------------------------------------------------
+ * Method: sr_ip_handler
+ * Scope:  Global
+ *
+ * This method is called each time the router receives a IP packet.
 
  * The packet buffer, the packet length and the receiving
  * interface are passed in as parameters. The packet is complete with
@@ -35,29 +166,32 @@
  * packet instead if you intend to keep it around beyond the scope of
  * the method call.
  *
+ * HEADS UP:
+ * 'packet' we received are in big-endian, so pay attention to it!
  *---------------------------------------------------------------------*/
 
-void sr_ip_handler(struct sr_instance* sr, 
-		  uint8_t * packet/* lent */,
-		  unsigned int len,
-		  char* interface/* lent */)
+void sr_ip_handler(struct sr_instance* sr, uint8_t * packet, unsigned int len)
 {
   /* REQUIRES */
   assert(sr);
   assert(packet);
-  assert(interface);
 
-  struct sr_if* iface = sr_get_interface(sr, interface); // get the ethernet interface
   struct sr_ethernet_hdr* e_hdr = 0; // Ethernet header
   struct ip*       ip_hdr = 0; // ARP header
 
+  /* IP header follows ethernet header. */
   ip_hdr = (struct ip *) (packet + sizeof(struct sr_ethernet_hdr));
 
   if (send_to_self(sr, ip_hdr)) {
     /* TODO: Handles IP packets send to the router itself. */
     printf("IP packet was targeted to SR. Will process it later on...\n");
   } else {
-    printf("IP packet was NOT targeted to SR.\n");
+    Debug("IP packet was NOT targeted to SR.\n");
+    uint32_t ip_target = ip_hdr->ip_dst.s_addr;
+    //    Debug("IP packet targeted to: ");
+    //    DebugIP(ip_target);
+
+    sr_ip_forward(sr, packet, len, ip_target);
   }
 
 }/* end sr_ForwardPacket */
