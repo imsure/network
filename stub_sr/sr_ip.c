@@ -27,7 +27,7 @@
  *
  * Search and return the default next hop (in network byte order).
  *---------------------------------------------------------------------*/
-uint32_t sr_router_default_nexthop(struct sr_instance* sr)
+uint32_t sr_router_default_nexthop(struct sr_instance* sr, char *iface_out)
 {
   struct sr_rt* rt_walker = sr->routing_table;
   uint32_t default_hop = 0;
@@ -36,6 +36,7 @@ uint32_t sr_router_default_nexthop(struct sr_instance* sr)
     if (rt_walker->mask.s_addr == 0x0 &&
 	rt_walker->dest.s_addr == 0x0) {      
       default_hop = rt_walker->gw.s_addr;
+      strncpy(iface_out, rt_walker->interface, sr_IFACE_NAMELEN);
       break;
     }
     rt_walker = rt_walker->next; 
@@ -53,7 +54,8 @@ uint32_t sr_router_default_nexthop(struct sr_instance* sr)
  * target IP 'target_ip' (in network byte order).
  *---------------------------------------------------------------------*/
 
-uint32_t sr_router_nexthop(struct sr_instance* sr, uint32_t target_ip)
+uint32_t sr_router_nexthop(struct sr_instance* sr, uint32_t target_ip,
+			   char *iface_out)
 {
   struct sr_rt* rt_walker = sr->routing_table;
   uint32_t nexthop = 0;
@@ -63,7 +65,15 @@ uint32_t sr_router_nexthop(struct sr_instance* sr, uint32_t target_ip)
     if (rt_walker->mask.s_addr != 0x0) {
       if (rt_walker->dest.s_addr == (target_ip & rt_walker->mask.s_addr)) {
 	//	printf("Next hop found: %s\n", inet_ntoa(rt_walker->dest));
-	nexthop = rt_walker->dest.s_addr;
+	if (rt_walker->gw.s_addr != 0x0) {
+	  nexthop = rt_walker->gw.s_addr;
+	} else {
+	  //nexthop = rt_walker->dest.s_addr;
+	  /* If the gateway entry is 0.0.0.0, next hop is the target,
+	     the dest column is just a prefix match, not exact match. */
+	  nexthop = target_ip;
+	}
+	strncpy(iface_out, rt_walker->interface, sr_IFACE_NAMELEN);
 	break;
       }
     }
@@ -71,7 +81,7 @@ uint32_t sr_router_nexthop(struct sr_instance* sr, uint32_t target_ip)
   }
 
   if (nexthop) return nexthop;
-  else return sr_router_default_nexthop(sr);
+  else return sr_router_default_nexthop(sr, iface_out);
 }
 
 
@@ -117,23 +127,24 @@ char *sr_router_interface(struct sr_instance* sr, uint32_t ip)
 void sr_ip_forward(struct sr_instance* sr, uint8_t * packet,
 		   unsigned int len, uint32_t target_ip, char *interface)
 {
+  char *iface_out = (char *) malloc(sr_IFACE_NAMELEN);
   /* Find the next hop in the routing table and the interface
      through which to send the packet to the next hop. */
-  uint32_t nexthop = sr_router_nexthop(sr, target_ip);
-  char *iface_out = sr_router_interface(sr, nexthop);
+  uint32_t nexthop = sr_router_nexthop(sr, target_ip, iface_out);
+  //  char *iface_out = sr_router_interface(sr, nexthop);
 
   /* Debug("Target IP: "); */
   /* DebugIP(target_ip); */
-  /* Debug("Next Hop: "); */
-  /* DebugIP(nexthop); */
-  /* Debug("Outgoing interface: %s\n", iface_out); */
+  Debug("Next Hop: ");
+  DebugIP(nexthop);
+  Debug("Outgoing interface: %s\n", iface_out);
 
   /* If packet destined to the application server, then use the
      exact target IP, not the prefix in the routing table. In
      this case, the next hop is the target itself!!! */
-  if (nexthop != sr_router_default_nexthop(sr)) {
-    nexthop = target_ip;
-  }
+  /* if (nexthop != sr_router_default_nexthop(sr)) { */
+  /*   nexthop = target_ip; */
+  /* } */
 
   struct sr_if *iface = sr_get_interface(sr, interface);
   struct ip *ip_hdr = (struct ip *) (packet+14);
