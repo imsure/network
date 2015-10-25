@@ -105,7 +105,7 @@ void sr_handlepacket(struct sr_instance* sr,
     //ip_hdr = (struct ip *)(packet + sizeof(struct sr_ethernet_hdr));
     //Debug("\nIP packet (IP datagram: %d bytes): ttl=%d, checksum=%d, protocol=%d\n",
     //  ntohs(ip_hdr->ip_len), ip_hdr->ip_ttl, ntohs(ip_hdr->ip_sum), ip_hdr->ip_p);
-    sr_ip_handler(sr, packet, len);
+    sr_ip_handler(sr, packet, len, interface);
     break;
   }
 

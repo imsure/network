@@ -20,12 +20,13 @@
 #include "sr_router.h"
 #include "sr_arp.h"
 #include "sr_ip.h"
+#include "sr_icmp.h"
 
 
 void sr_arp_send_request(struct sr_instance* sr, struct sr_arp_request *req)
 {
-  printf("TODO: need to send ARP request to (via %s) ", req->iface_out);
-  DebugIP(req->ip);
+  /* printf("TODO: need to send ARP request to (via %s) ", req->iface_out); */
+  /* DebugIP(req->ip); */
 
   /* raw ethernet frame: 14 bytes ethernet header, 28 bytes ARP payload */
   uint8_t *arp_req_packet = (uint8_t *) malloc(sizeof(struct sr_ethernet_hdr)
@@ -52,7 +53,6 @@ void sr_arp_send_request(struct sr_instance* sr, struct sr_arp_request *req)
   a_hdr->ar_tip = req->ip; // target IP
 
   int success = sr_send_packet(sr, arp_req_packet, 42, req->iface_out);
-  Debug("ARP request sent...\n");
   if (success != 0) {
     fprintf(stderr, "%s: Sending packet failed!\n", __func__);
   }  
@@ -432,6 +432,7 @@ void sr_arpcache_destroy(struct sr_arpcache *arpcache)
  * Scope:  Global
  *
  *---------------------------------------------------------------------*/
+
 void sr_arpcache_handle_request(struct sr_instance *sr, struct sr_arp_request *req)
 {
   time_t current_time = time(NULL);
@@ -441,8 +442,8 @@ void sr_arpcache_handle_request(struct sr_instance *sr, struct sr_arp_request *r
     if (req->sent_times >= 5) {
       /* TODO: send ICMP host unreachable to source addr of all
 	 packets waiting on this request. */
-      Debug("Need to send ICMP host unreachable to ");
-      DebugIP(req->ip);
+      sr_icmp_host_unreachable(sr, req);
+
       sr_arpreq_destroy(&(sr->arpcache), req);
       Debug("ARP request for ... destroyed\n");
     } else {
@@ -464,10 +465,12 @@ void sr_arpcache_handle_request(struct sr_instance *sr, struct sr_arp_request *r
 
 void sr_arpcache_sweep_reqs(struct sr_instance *sr)
 {
-  struct sr_arp_request *req;
+  struct sr_arp_request *req, *req_next;
   
-  for (req = sr->arpcache.requests; req != NULL; req = req->next) {
+  for (req = sr->arpcache.requests; req != NULL; ) {
+    req_next = req->next;
     sr_arpcache_handle_request(sr, req);
+    req = req_next;
   }
 }
 

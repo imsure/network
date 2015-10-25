@@ -18,6 +18,7 @@
 #include "sr_router.h"
 #include "sr_arp.h"
 #include "sr_ip.h"
+#include "sr_icmp.h"
 
 
 /*---------------------------------------------------------------------
@@ -144,7 +145,7 @@ void sr_ip_forward(struct sr_instance* sr, uint8_t * packet,
     /* Enqueue the ARP request for next hop. */
     struct sr_arp_request *req = sr_arpreq_enqueue(&(sr->arpcache), nexthop,
 						   packet, len, iface_out);
-    sr_arpcache_handle_request(sr, req); // possible race condition?
+    //sr_arpcache_handle_request(sr, req); // possible race condition?
   } else {
     Debug("ARP cache entry found: ");
     sr_arpcache_print_entry(entry);
@@ -173,7 +174,8 @@ void sr_ip_forward(struct sr_instance* sr, uint8_t * packet,
  * 'packet' received are in big-endian, so pay attention to it!
  *---------------------------------------------------------------------*/
 
-void sr_ip_handler(struct sr_instance* sr, uint8_t * packet, unsigned int len)
+void sr_ip_handler(struct sr_instance* sr, uint8_t * packet,
+		   unsigned int len, char* interface)
 {
   /* REQUIRES */
   assert(sr);
@@ -192,6 +194,7 @@ void sr_ip_handler(struct sr_instance* sr, uint8_t * packet, unsigned int len)
   if (send_to_self(sr, ip_hdr)) {
     /* TODO: Handles IP packets send to the router itself. */
     printf("IP packet was targeted to SR. Will process it later on...\n");
+    sr_ip_handle_packet_sent2self(sr, packet, len, interface);
   } else {
     //Debug("IP packet was NOT targeted to SR.\n");
     uint32_t ip_target = ip_hdr->ip_dst.s_addr; // target IP
@@ -292,5 +295,84 @@ void sr_ip_send_packet(struct sr_instance* sr,
   int success = sr_send_packet(sr, packet, ip_packet->len, ip_packet->iface_out);
   if (success != 0) {
     fprintf(stderr, "%s: Sending packet failed!\n", __func__);
+  }
+}
+
+
+void sr_ip_handle_packet_sent2self(struct sr_instance* sr, uint8_t * packet,
+				   unsigned int len, char* interface)
+{
+  struct sr_ethernet_hdr *e_hdr;
+  struct ip *ip_hdr;
+  struct sr_icmphdr *icmp_hdr;
+
+  e_hdr = (struct sr_ethernet_hdr *) packet;
+  ip_hdr = (struct ip *) (packet+sizeof(struct sr_ethernet_hdr));
+  if (ip_hdr->ip_p == 0x1) { // ICMP
+    icmp_hdr = (struct sr_icmphdr *) (packet + 34);
+    sr_icmp_print_header(icmp_hdr);
+    if (icmp_hdr->icmp_type == 0x8 && icmp_hdr->icmp_code == 0x0) { // echo request
+      /* Ethernet header */
+      uint8_t addr_tmp[6];
+      memcpy(addr_tmp, e_hdr->ether_dhost, 6);
+      memcpy(e_hdr->ether_dhost, e_hdr->ether_shost, 6);
+      memcpy(e_hdr->ether_shost, addr_tmp, 6);
+
+      /* IP header */
+      struct in_addr ip_addr_tmp = ip_hdr->ip_src;
+      ip_hdr->ip_src = ip_hdr->ip_dst;
+      ip_hdr->ip_dst = ip_addr_tmp;
+      ip_hdr->ip_sum = 0;
+      ip_hdr->ip_sum = checksum(ip_hdr, sizeof(struct ip));
+
+      /* ICMP header */
+      icmp_hdr->icmp_type = 0x0;
+      icmp_hdr->icmp_chksum = 0x0;
+      icmp_hdr->icmp_chksum = icmp_checksum((uint16_t *)icmp_hdr,
+					    ntohs(ip_hdr->ip_len) - 20);
+      int success = sr_send_packet(sr, packet, len, interface);
+      if (success != 0) {
+	fprintf(stderr, "%s: Sending packet failed!\n", __func__);
+      }
+    } 
+  } else if (ip_hdr->ip_p == 17) { // a UDP payload
+    uint8_t *new_pkt = (uint8_t *) calloc(1, 70);
+    struct sr_ethernet_hdr *new_e_hdr = (struct sr_ethernet_hdr *) new_pkt;
+    struct ip *new_ip_hdr = (struct ip *) (new_pkt + 14);
+    struct sr_icmphdr *new_icmp_hdr = (struct sr_icmphdr *) (new_pkt + 34);
+
+    /* ethernet header */
+    memcpy(new_e_hdr->ether_dhost, e_hdr->ether_shost, 6);
+    memcpy(new_e_hdr->ether_shost, e_hdr->ether_dhost, 6);
+    new_e_hdr->ether_type = htons(0x0800);
+
+    /* IP header */
+    new_ip_hdr->ip_hl = 5;
+    new_ip_hdr->ip_v = 4;
+    new_ip_hdr->ip_tos = 0;
+    new_ip_hdr->ip_len = htons(56);
+    new_ip_hdr->ip_id = ip_hdr->ip_id;
+    new_ip_hdr->ip_off = ip_hdr->ip_off;
+    new_ip_hdr->ip_ttl = 64;
+    new_ip_hdr->ip_p = 1;
+    new_ip_hdr->ip_src = ip_hdr->ip_dst;
+    new_ip_hdr->ip_dst = ip_hdr->ip_src;
+    new_ip_hdr->ip_sum = 0;
+    new_ip_hdr->ip_sum = checksum(new_ip_hdr, 20);
+
+    /* ICMP */
+    new_icmp_hdr->icmp_type = 3;
+    new_icmp_hdr->icmp_code = 3;
+    new_icmp_hdr->id = 0;
+    new_icmp_hdr->seqno = 0;
+    memcpy(new_pkt+42, ip_hdr, 28);
+    new_icmp_hdr->icmp_chksum = 0;
+    new_icmp_hdr->icmp_chksum = icmp_checksum((uint16_t *)new_icmp_hdr, 36);
+
+    int success = sr_send_packet(sr, new_pkt, 70, interface);
+    if (success != 0) {
+      fprintf(stderr, "%s: Sending packet failed!\n", __func__);
+    }
+    Debug("UDP port unreachable ICMP sent\n");
   }
 }

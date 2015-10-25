@@ -5,4 +5,4 @@
 4. Send ICMP host unreachable when ARP request has been sent for 5 times without a reply.
 5. Kick out an ARP cache entry when the cache is full randomly.
 6. An script for automating testing. (mixing senarios together, ping, tracerout, wget...)
-
+7. Generate ICMP Timeout for IP packets with ttl of 1 or 0.
