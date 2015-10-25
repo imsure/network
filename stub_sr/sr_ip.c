@@ -115,7 +115,7 @@ char *sr_router_interface(struct sr_instance* sr, uint32_t ip)
  *---------------------------------------------------------------------*/
 
 void sr_ip_forward(struct sr_instance* sr, uint8_t * packet,
-		   unsigned int len, uint32_t target_ip)
+		   unsigned int len, uint32_t target_ip, char *interface)
 {
   /* Find the next hop in the routing table and the interface
      through which to send the packet to the next hop. */
@@ -133,6 +133,53 @@ void sr_ip_forward(struct sr_instance* sr, uint8_t * packet,
      this case, the next hop is the target itself!!! */
   if (nexthop != sr_router_default_nexthop(sr)) {
     nexthop = target_ip;
+  }
+
+  struct sr_if *iface = sr_get_interface(sr, interface);
+  struct ip *ip_hdr = (struct ip *) (packet+14);
+  struct sr_ethernet_hdr *e_hdr = (struct sr_ethernet_hdr *) packet;
+  if (ip_hdr->ip_ttl <= 1) {
+    /* Send ICMP time exceeded message. This is
+       need for traceroute to work. */
+    uint8_t *new_pkt = (uint8_t *) calloc(1, 70);
+    struct sr_ethernet_hdr *new_e_hdr = (struct sr_ethernet_hdr *) new_pkt;
+    struct ip *new_ip_hdr = (struct ip *) (new_pkt + 14);
+    struct sr_icmphdr *new_icmp_hdr = (struct sr_icmphdr *) (new_pkt + 34);
+
+    /* ethernet header */
+    memcpy(new_e_hdr->ether_dhost, e_hdr->ether_shost, 6);
+    memcpy(new_e_hdr->ether_shost, e_hdr->ether_dhost, 6);
+    new_e_hdr->ether_type = htons(0x0800);
+
+    /* IP header */
+    new_ip_hdr->ip_hl = 5;
+    new_ip_hdr->ip_v = 4;
+    new_ip_hdr->ip_tos = 0;
+    new_ip_hdr->ip_len = htons(56);
+    new_ip_hdr->ip_id = ip_hdr->ip_id;
+    new_ip_hdr->ip_off = ip_hdr->ip_off;
+    new_ip_hdr->ip_ttl = 64;
+    new_ip_hdr->ip_p = 1;
+    new_ip_hdr->ip_src.s_addr = iface->ip;
+    new_ip_hdr->ip_dst = ip_hdr->ip_src;
+    new_ip_hdr->ip_sum = 0;
+    new_ip_hdr->ip_sum = checksum(new_ip_hdr, 20);
+
+    /* ICMP ttl exceeded: type: 11, code: 0 */
+    new_icmp_hdr->icmp_type = 11;
+    new_icmp_hdr->icmp_code = 0;
+    new_icmp_hdr->id = 0;
+    new_icmp_hdr->seqno = 0;
+    memcpy(new_pkt+42, ip_hdr, 28);
+    new_icmp_hdr->icmp_chksum = 0;
+    new_icmp_hdr->icmp_chksum = icmp_checksum((uint16_t *)new_icmp_hdr, 36);
+
+    int success = sr_send_packet(sr, new_pkt, 70, interface);
+    if (success != 0) {
+      fprintf(stderr, "%s: Sending packet failed!\n", __func__);
+    }
+
+    return;
   }
 
   /* Look up the ARP cache. if no MAC in the ARP
@@ -198,7 +245,7 @@ void sr_ip_handler(struct sr_instance* sr, uint8_t * packet,
   } else {
     //Debug("IP packet was NOT targeted to SR.\n");
     uint32_t ip_target = ip_hdr->ip_dst.s_addr; // target IP
-    sr_ip_forward(sr, packet, len, ip_target);
+    sr_ip_forward(sr, packet, len, ip_target, interface);
   }
 
 }/* end sr_ForwardPacket */
@@ -335,7 +382,7 @@ void sr_ip_handle_packet_sent2self(struct sr_instance* sr, uint8_t * packet,
 	fprintf(stderr, "%s: Sending packet failed!\n", __func__);
       }
     } 
-  } else if (ip_hdr->ip_p == 17) { // a UDP payload
+  } else if (ip_hdr->ip_p == 17 || ip_hdr->ip_p == 6) { // UDP or TCP payload
     uint8_t *new_pkt = (uint8_t *) calloc(1, 70);
     struct sr_ethernet_hdr *new_e_hdr = (struct sr_ethernet_hdr *) new_pkt;
     struct ip *new_ip_hdr = (struct ip *) (new_pkt + 14);
@@ -360,7 +407,7 @@ void sr_ip_handle_packet_sent2self(struct sr_instance* sr, uint8_t * packet,
     new_ip_hdr->ip_sum = 0;
     new_ip_hdr->ip_sum = checksum(new_ip_hdr, 20);
 
-    /* ICMP */
+    /* ICMP port unreachable */
     new_icmp_hdr->icmp_type = 3;
     new_icmp_hdr->icmp_code = 3;
     new_icmp_hdr->id = 0;
