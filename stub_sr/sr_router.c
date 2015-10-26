@@ -83,7 +83,7 @@ void sr_handlepacket(struct sr_instance* sr,
   struct sr_arphdr *a_hdr; // ARP header
   struct ip *ip_hdr; // IP header
 
-  printf("\n*** -> Received packet of length %d (ether_type=%04x) at %s\n",
+  printf("*** -> Received packet of length %d (ether_type=%04x) at %s\n",
 	 len, ntohs(e_hdr->ether_type), interface);
 
   switch(ntohs(e_hdr->ether_type)) {

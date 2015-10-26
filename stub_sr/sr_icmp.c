@@ -104,8 +104,8 @@ void sr_icmp_host_unreachable(struct sr_instance *sr, struct sr_arp_request *req
     //    entry = sr_arpcache_search(&(sr->arpcache), default_hop);
 
   } else {
-    Debug("ARP cache entry found: ");
-    sr_arpcache_print_entry(entry);
+    //Debug("ARP cache entry found: ");
+    //sr_arpcache_print_entry(entry);
     memcpy(default_mac, entry->mac, 6);
   }
 

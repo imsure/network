@@ -191,8 +191,8 @@ void sr_ip_forward(struct sr_instance* sr, uint8_t * packet,
 						   packet, len, iface_out);
     //sr_arpcache_handle_request(sr, req); // possible race condition?
   } else {
-    Debug("ARP cache entry found: ");
-    sr_arpcache_print_entry(entry);
+    //Debug("ARP cache entry found: ");
+    //sr_arpcache_print_entry(entry);
 
     /* Construct an ip_packet with necessary information and send. */
     struct sr_ip_packet ip_packet;

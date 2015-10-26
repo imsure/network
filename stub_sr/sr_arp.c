@@ -322,8 +322,8 @@ struct sr_arp_request *sr_arpcache_insert(struct sr_arpcache *arpcache,
     arpcache->entries[i].time_added = time(NULL);
     arpcache->entries[i].is_valid = 1;
 
-    sr_arpcache_print_entry(&(arpcache->entries[i]));
-    Debug("Inserted at %s\n", ctime(&(arpcache->entries[i].time_added)));
+    //sr_arpcache_print_entry(&(arpcache->entries[i]));
+    //Debug("Inserted at %s\n", ctime(&(arpcache->entries[i].time_added)));
   } else { // cache is full
     /* TODO: Kick out an ARP cache entry randomly */
   }
@@ -440,12 +440,12 @@ void sr_arpcache_handle_request(struct sr_instance *sr, struct sr_arp_request *r
       sr_icmp_host_unreachable(sr, req);
 
       sr_arpreq_destroy(&(sr->arpcache), req);
-      Debug("ARP request for ... destroyed\n");
+      //Debug("ARP request for ... destroyed\n");
     } else {
       sr_arp_send_request(sr, req);
       req->time_sent = time(NULL);
       req->sent_times++;
-      Debug("ARP request sent for %d times\n", req->sent_times);
+      //Debug("ARP request sent for %d times\n", req->sent_times);
     }
   }
 }
@@ -497,8 +497,8 @@ void *sr_arpcache_timeout_handler(void *sr_ptr)
       if ((arpcache->entries[i].is_valid) &&
 	  (time_since_added > SR_ARPCACHE_TIME_OUT)) {
 	arpcache->entries[i].is_valid = 0; // mark as invalid
-	Debug("Time out the entry ");
-	sr_arpcache_print_entry(&(arpcache->entries[i]));
+	//Debug("Time out the entry ");
+	//sr_arpcache_print_entry(&(arpcache->entries[i]));
       }
     }
 
