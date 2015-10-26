@@ -1,0 +1,81 @@
+17:11:59.776356 IP lectura.cs.arizona.edu > 172.29.10.97: ICMP echo request, id 25175, seq 1, length 64
+17:11:59.958411 ARP, Request who-has 172.29.10.96 tell 172.29.10.102, length 28
+17:12:00.783993 IP lectura.cs.arizona.edu > 172.29.10.97: ICMP echo request, id 25175, seq 2, length 64
+17:12:01.792040 IP lectura.cs.arizona.edu > 172.29.10.97: ICMP echo request, id 25175, seq 3, length 64
+17:12:01.958660 ARP, Request who-has 172.29.10.96 tell 172.29.10.102, length 28
+17:12:02.800022 IP lectura.cs.arizona.edu > 172.29.10.97: ICMP echo request, id 25175, seq 4, length 64
+17:12:03.808098 IP lectura.cs.arizona.edu > 172.29.10.97: ICMP echo request, id 25175, seq 5, length 64
+17:12:03.958897 ARP, Request who-has 172.29.10.96 tell 172.29.10.102, length 28
+17:12:04.791411 ARP, Request who-has 172.29.10.104 tell 172.29.10.105, length 28
+17:12:04.791443 ARP, Reply 172.29.10.104 is-at 32:0b:75:04:d5:71 (oui Unknown), length 28
+17:12:04.816063 IP lectura.cs.arizona.edu > 172.29.10.97: ICMP echo request, id 25175, seq 6, length 64
+17:12:05.824100 IP lectura.cs.arizona.edu > 172.29.10.97: ICMP echo request, id 25175, seq 7, length 64
+17:12:05.959124 ARP, Request who-has 172.29.10.96 tell 172.29.10.102, length 28
+17:12:06.832151 IP lectura.cs.arizona.edu > 172.29.10.97: ICMP echo request, id 25175, seq 8, length 64
+17:12:07.839956 IP lectura.cs.arizona.edu > 172.29.10.97: ICMP echo request, id 25175, seq 9, length 64
+17:12:07.959355 ARP, Request who-has 172.29.10.96 tell 172.29.10.102, length 28
+17:12:08.848037 IP lectura.cs.arizona.edu > 172.29.10.97: ICMP echo request, id 25175, seq 10, length 64
+17:12:09.856185 IP lectura.cs.arizona.edu > 172.29.10.97: ICMP echo request, id 25175, seq 11, length 64
+17:12:09.959646 IP 172.29.10.104 > lectura.cs.arizona.edu: ICMP host 172.29.10.97 unreachable, length 36
+17:12:09.959705 IP 172.29.10.104 > lectura.cs.arizona.edu: ICMP host 172.29.10.97 unreachable, length 36
+17:12:09.959733 IP 172.29.10.104 > lectura.cs.arizona.edu: ICMP host 172.29.10.97 unreachable, length 36
+17:12:09.959758 IP 172.29.10.104 > lectura.cs.arizona.edu: ICMP host 172.29.10.97 unreachable, length 36
+17:12:09.959784 IP 172.29.10.104 > lectura.cs.arizona.edu: ICMP host 172.29.10.97 unreachable, length 36
+17:12:09.959986 IP 172.29.10.104 > lectura.cs.arizona.edu: ICMP host 172.29.10.97 unreachable, length 36
+17:12:09.960012 IP 172.29.10.104 > lectura.cs.arizona.edu: ICMP host 172.29.10.97 unreachable, length 36
+17:12:09.960037 IP 172.29.10.104 > lectura.cs.arizona.edu: ICMP host 172.29.10.97 unreachable, length 36
+17:12:09.960062 IP 172.29.10.104 > lectura.cs.arizona.edu: ICMP host 172.29.10.97 unreachable, length 36
+17:12:09.960086 IP 172.29.10.104 > lectura.cs.arizona.edu: ICMP host 172.29.10.97 unreachable, length 36
+17:12:09.960111 IP 172.29.10.104 > lectura.cs.arizona.edu: ICMP host 172.29.10.97 unreachable, length 36
+17:12:10.857401 IP lectura.cs.arizona.edu > 172.29.10.97: ICMP echo request, id 25175, seq 12, length 64
+17:12:10.960226 ARP, Request who-has 172.29.10.96 tell 172.29.10.102, length 28
+17:12:11.864070 IP lectura.cs.arizona.edu > 172.29.10.97: ICMP echo request, id 25175, seq 13, length 64
+17:12:12.872134 IP lectura.cs.arizona.edu > 172.29.10.97: ICMP echo request, id 25175, seq 14, length 64
+17:12:12.960441 ARP, Request who-has 172.29.10.96 tell 172.29.10.102, length 28
+17:12:13.880091 IP lectura.cs.arizona.edu > 172.29.10.97: ICMP echo request, id 25175, seq 15, length 64
+17:12:14.888062 IP lectura.cs.arizona.edu > 172.29.10.97: ICMP echo request, id 25175, seq 16, length 64
+17:12:14.960700 ARP, Request who-has 172.29.10.96 tell 172.29.10.102, length 28
+17:12:15.896159 IP lectura.cs.arizona.edu > 172.29.10.97: ICMP echo request, id 25175, seq 17, length 64
+17:12:16.903935 IP lectura.cs.arizona.edu > 172.29.10.97: ICMP echo request, id 25175, seq 18, length 64
+17:12:16.960956 ARP, Request who-has 172.29.10.96 tell 172.29.10.102, length 28
+17:12:17.912030 IP lectura.cs.arizona.edu > 172.29.10.97: ICMP echo request, id 25175, seq 19, length 64
+17:12:18.920009 IP lectura.cs.arizona.edu > 172.29.10.97: ICMP echo request, id 25175, seq 20, length 64
+17:12:18.961193 ARP, Request who-has 172.29.10.96 tell 172.29.10.102, length 28
+17:12:19.927877 IP lectura.cs.arizona.edu > 172.29.10.97: ICMP echo request, id 25175, seq 21, length 64
+17:12:20.935988 IP lectura.cs.arizona.edu > 172.29.10.97: ICMP echo request, id 25175, seq 22, length 64
+17:12:20.961434 IP 172.29.10.104 > lectura.cs.arizona.edu: ICMP host 172.29.10.97 unreachable, length 36
+17:12:20.961482 IP 172.29.10.104 > lectura.cs.arizona.edu: ICMP host 172.29.10.97 unreachable, length 36
+17:12:20.961516 IP 172.29.10.104 > lectura.cs.arizona.edu: ICMP host 172.29.10.97 unreachable, length 36
+17:12:20.961542 IP 172.29.10.104 > lectura.cs.arizona.edu: ICMP host 172.29.10.97 unreachable, length 36
+17:12:20.961567 IP 172.29.10.104 > lectura.cs.arizona.edu: ICMP host 172.29.10.97 unreachable, length 36
+17:12:20.961679 IP 172.29.10.104 > lectura.cs.arizona.edu: ICMP host 172.29.10.97 unreachable, length 36
+17:12:20.961705 IP 172.29.10.104 > lectura.cs.arizona.edu: ICMP host 172.29.10.97 unreachable, length 36
+17:12:20.961730 IP 172.29.10.104 > lectura.cs.arizona.edu: ICMP host 172.29.10.97 unreachable, length 36
+17:12:20.961754 IP 172.29.10.104 > lectura.cs.arizona.edu: ICMP host 172.29.10.97 unreachable, length 36
+17:12:20.961779 IP 172.29.10.104 > lectura.cs.arizona.edu: ICMP host 172.29.10.97 unreachable, length 36
+17:12:20.961872 IP 172.29.10.104 > lectura.cs.arizona.edu: ICMP host 172.29.10.97 unreachable, length 36
+17:12:21.937790 IP lectura.cs.arizona.edu > 172.29.10.97: ICMP echo request, id 25175, seq 23, length 64
+17:12:21.961999 ARP, Request who-has 172.29.10.96 tell 172.29.10.102, length 28
+17:12:22.943998 IP lectura.cs.arizona.edu > 172.29.10.97: ICMP echo request, id 25175, seq 24, length 64
+17:12:23.951950 IP lectura.cs.arizona.edu > 172.29.10.97: ICMP echo request, id 25175, seq 25, length 64
+17:12:23.962236 ARP, Request who-has 172.29.10.96 tell 172.29.10.102, length 28
+17:12:24.959850 IP lectura.cs.arizona.edu > 172.29.10.97: ICMP echo request, id 25175, seq 26, length 64
+17:12:25.962440 ARP, Request who-has 172.29.10.96 tell 172.29.10.102, length 28
+17:12:25.968062 IP lectura.cs.arizona.edu > 172.29.10.97: ICMP echo request, id 25175, seq 27, length 64
+17:12:26.952531 ARP, Request who-has 172.29.10.104 tell 172.29.10.105, length 28
+17:12:26.952564 ARP, Reply 172.29.10.104 is-at 32:0b:75:04:d5:71 (oui Unknown), length 28
+17:12:26.976022 IP lectura.cs.arizona.edu > 172.29.10.97: ICMP echo request, id 25175, seq 28, length 64
+17:12:27.962696 ARP, Request who-has 172.29.10.96 tell 172.29.10.102, length 28
+17:12:27.984001 IP lectura.cs.arizona.edu > 172.29.10.97: ICMP echo request, id 25175, seq 29, length 64
+17:12:28.992024 IP lectura.cs.arizona.edu > 172.29.10.97: ICMP echo request, id 25175, seq 30, length 64
+17:12:29.962952 ARP, Request who-has 172.29.10.96 tell 172.29.10.102, length 28
+17:12:31.963256 IP 172.29.10.104 > lectura.cs.arizona.edu: ICMP host 172.29.10.97 unreachable, length 36
+17:12:31.963316 IP 172.29.10.104 > lectura.cs.arizona.edu: ICMP host 172.29.10.97 unreachable, length 36
+17:12:31.963345 IP 172.29.10.104 > lectura.cs.arizona.edu: ICMP host 172.29.10.97 unreachable, length 36
+17:12:31.963370 IP 172.29.10.104 > lectura.cs.arizona.edu: ICMP host 172.29.10.97 unreachable, length 36
+17:12:31.963395 IP 172.29.10.104 > lectura.cs.arizona.edu: ICMP host 172.29.10.97 unreachable, length 36
+17:12:31.963421 IP 172.29.10.104 > lectura.cs.arizona.edu: ICMP host 172.29.10.97 unreachable, length 36
+17:12:31.963636 IP 172.29.10.104 > lectura.cs.arizona.edu: ICMP host 172.29.10.97 unreachable, length 36
+17:12:31.963662 IP 172.29.10.104 > lectura.cs.arizona.edu: ICMP host 172.29.10.97 unreachable, length 36
+17:12:31.971398 IP lectura.cs.arizona.edu.10325 > 172.29.10.104.16280: Flags [S], seq 410692955, win 14600, options [mss 1460,sackOK,TS val 741349422 ecr 0,nop,wscale 7], length 0
+17:12:31.971427 IP 172.29.10.104 > lectura.cs.arizona.edu: ICMP 172.29.10.104 tcp port 16280 unreachable, length 36

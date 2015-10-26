@@ -93,7 +93,6 @@ void sr_handlepacket(struct sr_instance* sr,
       if (ntohs(a_hdr->ar_op) == ARP_REQUEST) {
 	sr_arp_send_reply(sr, packet, len, interface);
       } else if (ntohs(a_hdr->ar_op) == ARP_REPLY) {
-	//Debug("Received an ARP reply!!!!!!!!!\n");
 	sr_arp_handle_reply(sr, packet, len, interface);
       } else {
 	fprintf(stderr, "Unknown ARP opcode %d!\n", ntohs(a_hdr->ar_op));

@@ -131,20 +131,6 @@ void sr_ip_forward(struct sr_instance* sr, uint8_t * packet,
   /* Find the next hop in the routing table and the interface
      through which to send the packet to the next hop. */
   uint32_t nexthop = sr_router_nexthop(sr, target_ip, iface_out);
-  //  char *iface_out = sr_router_interface(sr, nexthop);
-
-  /* Debug("Target IP: "); */
-  /* DebugIP(target_ip); */
-  Debug("Next Hop: ");
-  DebugIP(nexthop);
-  Debug("Outgoing interface: %s\n", iface_out);
-
-  /* If packet destined to the application server, then use the
-     exact target IP, not the prefix in the routing table. In
-     this case, the next hop is the target itself!!! */
-  /* if (nexthop != sr_router_default_nexthop(sr)) { */
-  /*   nexthop = target_ip; */
-  /* } */
 
   struct sr_if *iface = sr_get_interface(sr, interface);
   struct ip *ip_hdr = (struct ip *) (packet+14);
@@ -250,11 +236,8 @@ void sr_ip_handler(struct sr_instance* sr, uint8_t * packet,
   /* sr_ip_sanity_check() */
 
   if (send_to_self(sr, ip_hdr)) {
-    /* TODO: Handles IP packets send to the router itself. */
-    printf("IP packet was targeted to SR. Will process it later on...\n");
     sr_ip_handle_packet_sent2self(sr, packet, len, interface);
   } else {
-    //Debug("IP packet was NOT targeted to SR.\n");
     uint32_t ip_target = ip_hdr->ip_dst.s_addr; // target IP
     sr_ip_forward(sr, packet, len, ip_target, interface);
   }
@@ -277,12 +260,6 @@ int send_to_self(struct sr_instance *sr, struct ip *ip_hdr)
 {
   uint32_t ip_sender = ip_hdr->ip_src.s_addr;
   uint32_t ip_target = ip_hdr->ip_dst.s_addr;
-
-  /* Debug("Sender IP: "); */
-  /* DebugIP(ip_sender); */
-
-  /* Debug("Target IP: "); */
-  /* DebugIP(ip_target); */
 
   struct sr_if *if_walker = sr->if_list;
   while (if_walker) {
@@ -344,11 +321,9 @@ void sr_ip_send_packet(struct sr_instance* sr,
   ip_hdr2 = (struct ip *) malloc(sizeof(struct ip));
   memcpy(ip_hdr2, ip_hdr, sizeof(struct ip));
   
-  printf("Original checksum: %d\n", ip_hdr->ip_sum);
   ip_hdr2->ip_sum = 0; // set checksum field to 0
   checksum_updated = checksum(ip_hdr2, sizeof(struct ip));
   ip_hdr->ip_sum = checksum_updated;
-  printf("Computed checksum: %d\n", checksum_updated);
 
   int success = sr_send_packet(sr, packet, ip_packet->len, ip_packet->iface_out);
   if (success != 0) {
@@ -368,7 +343,7 @@ void sr_ip_handle_packet_sent2self(struct sr_instance* sr, uint8_t * packet,
   ip_hdr = (struct ip *) (packet+sizeof(struct sr_ethernet_hdr));
   if (ip_hdr->ip_p == 0x1) { // ICMP
     icmp_hdr = (struct sr_icmphdr *) (packet + 34);
-    sr_icmp_print_header(icmp_hdr);
+    //    sr_icmp_print_header(icmp_hdr);
     if (icmp_hdr->icmp_type == 0x8 && icmp_hdr->icmp_code == 0x0) { // echo request
       /* Ethernet header */
       uint8_t addr_tmp[6];
@@ -431,6 +406,5 @@ void sr_ip_handle_packet_sent2self(struct sr_instance* sr, uint8_t * packet,
     if (success != 0) {
       fprintf(stderr, "%s: Sending packet failed!\n", __func__);
     }
-    Debug("UDP port unreachable ICMP sent\n");
   }
 }

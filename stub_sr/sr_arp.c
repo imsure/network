@@ -25,9 +25,6 @@
 
 void sr_arp_send_request(struct sr_instance* sr, struct sr_arp_request *req)
 {
-  /* printf("TODO: need to send ARP request to (via %s) ", req->iface_out); */
-  /* DebugIP(req->ip); */
-
   /* raw ethernet frame: 14 bytes ethernet header, 28 bytes ARP payload */
   uint8_t *arp_req_packet = (uint8_t *) malloc(sizeof(struct sr_ethernet_hdr)
 					       + sizeof(struct sr_arphdr));
@@ -440,8 +437,6 @@ void sr_arpcache_handle_request(struct sr_instance *sr, struct sr_arp_request *r
 
   if (time_since_last_sent > 1.0) {
     if (req->sent_times >= 5) {
-      /* TODO: send ICMP host unreachable to source addr of all
-	 packets waiting on this request. */
       sr_icmp_host_unreachable(sr, req);
 
       sr_arpreq_destroy(&(sr->arpcache), req);
