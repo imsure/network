@@ -2,7 +2,7 @@
 
 if [ "$1" = '' ]
 then
-    echo $0 <path/to/logfile>
+    echo $0 path/to/logfile
     exit 1
 fi
 

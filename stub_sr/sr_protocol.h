@@ -103,6 +103,20 @@ struct ip
     struct in_addr ip_src, ip_dst;	/* source and dest address */
   } __attribute__ ((packed)) ;
 
+
+/*
+ * ICMP header
+ */
+struct sr_icmphdr
+{
+  uint8_t   icmp_type;             /* type */
+  uint8_t   icmp_code;             /* code */
+  uint16_t  icmp_chksum;           /* checksum */
+  uint16_t  id; /* identifier */
+  uint16_t  seqno; /* sequence number */
+} __attribute__ ((packed)) ;
+
+
 /* 
  *  Ethernet packet header prototype.  Too many O/S's define this differently.
  *  Easy enough to solve that and define it here.

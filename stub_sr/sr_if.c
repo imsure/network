@@ -25,6 +25,38 @@
 #include "sr_if.h"
 #include "sr_router.h"
 
+
+/*--------------------------------------------------------------------- 
+ * Method: sr_get_interface_by_mac
+ * Scope: Global
+ *
+ * Given an mac addr return the interface record or 0 if it doesn't
+ * exist.
+ *
+ *---------------------------------------------------------------------*/
+
+struct sr_if* sr_get_interface_by_mac(struct sr_instance* sr, uint8_t* mac)
+{
+  struct sr_if* if_walker = 0;
+
+  /* -- REQUIRES -- */
+  assert(sr);
+
+  if_walker = sr->if_list;
+
+  while(if_walker)
+    {
+      if(if_walker->addr[0] == mac[0] && if_walker->addr[1] == mac[1] &&
+	 if_walker->addr[2] == mac[2] && if_walker->addr[3] == mac[3] &&
+	 if_walker->addr[4] == mac[4] && if_walker->addr[5] == mac[5])
+        { return if_walker; }
+      if_walker = if_walker->next;
+    }
+
+  return 0;
+} /* -- sr_get_interface -- */
+
+
 /*--------------------------------------------------------------------- 
  * Method: sr_get_interface
  * Scope: Global

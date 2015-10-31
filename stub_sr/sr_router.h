@@ -12,8 +12,10 @@
 #include <netinet/in.h>
 #include <sys/time.h>
 #include <stdio.h>
+#include <pthread.h>
 
 #include "sr_protocol.h"
+#include "sr_arp.h"
 #ifdef VNL
 #include "vnlconn.h"
 #endif
@@ -23,7 +25,12 @@
 #define Debug(x, args...) printf(x, ## args)
 #define DebugMAC(x) \
   do { int ivyl; for(ivyl=0; ivyl<5; ivyl++) printf("%02x:", \
-  (unsigned char)(x[ivyl])); printf("%02x",(unsigned char)(x[5])); } while (0)
+  (unsigned char)(x[ivyl])); printf("%02x",(unsigned char)(x[5])); } while (0) \
+    ;putchar('\n')
+#define DebugIP(x) \
+  do { int ivyl; uint8_t *y = (uint8_t *)&x; for(ivyl=0; ivyl<3; ivyl++) printf("%d.", \
+  (uint8_t)(y[ivyl])); printf("%d",(uint8_t)(y[3])); } while (0) \
+    ;putchar('\n')
 #else
 #define Debug(x, args...) do{}while(0)
 #define DebugMAC(x) do{}while(0)
@@ -57,6 +64,8 @@ struct sr_instance
     struct sockaddr_in sr_addr; /* address to server */
     struct sr_if* if_list; /* list of interfaces */
     struct sr_rt* routing_table; /* routing table */
+    struct sr_arpcache arpcache; /* ARP cache */
+    pthread_attr_t attr; /* for ARP cache time out daemon thread */
     FILE* logfile;
 };
 

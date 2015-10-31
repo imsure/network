@@ -34,13 +34,13 @@ endif
 
 CFLAGS = -g -Wall -std=gnu99 -D_DEBUG_ -DVNL $(ARCH)
 
-LIBS= $(SOCK) -lm
+LIBS= $(SOCK) -lm -lpthread
 PFLAGS= -follow-child-processes=yes -cache-dir=/tmp/${USER}
 PURIFY= purify ${PFLAGS}
 
 sr_SRCS = vnlconn.c sr_router.c sr_main.c  \
           sr_if.c sr_rt.c sr_vns_comm.c   \
-          sr_dumper.c sha1.c
+          sr_dumper.c sha1.c sr_arp.c sr_ip.c sr_icmp.c
 
 sr_OBJS = $(patsubst %.c,%.o,$(sr_SRCS))
 sr_DEPS = $(patsubst %.c,.%.d,$(sr_SRCS))
