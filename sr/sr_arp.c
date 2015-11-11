@@ -3,7 +3,8 @@
  *
  * Description:
  * 
- * This file contains all the functions that handle ARP requests/replies.
+ * This file contains all the functions that handle ARP requests,
+ * replies and ARP cache.
  **********************************************************************/
 
 #include <stdio.h>
@@ -22,6 +23,36 @@
 #include "sr_ip.h"
 #include "sr_icmp.h"
 
+
+/*------------------------------------------------------------------
+ * Scope: Global
+ *
+ * Entry point of handling raw ethernet packet with a ARP payload.
+ *-----------------------------------------------------------------*/
+
+void sr_arp_handler(struct sr_instance* sr, uint8_t * packet/* lent */,
+		    unsigned int len, char* interface/* lent */)
+{
+  struct sr_if *iface = sr_get_interface(sr, interface);
+  struct sr_arphdr *a_hdr; // ARP header
+
+  a_hdr = (struct sr_arphdr *)(packet + sizeof(struct sr_ethernet_hdr));
+  if (iface->ip == a_hdr->ar_tip) { // am I the target of this ARP packet?
+    
+    if (ntohs(a_hdr->ar_op) == ARP_REQUEST) {
+      /* Someone in the same local network requested to know my MAC. */
+      sr_arp_send_reply(sr, packet, len, interface);
+      
+    } else if (ntohs(a_hdr->ar_op) == ARP_REPLY) {
+      /* Someone in the same local network replied my ARP request. */
+      sr_arp_handle_reply(sr, packet, len, interface);
+      
+    } else {
+      fprintf(stderr, "Unknown ARP opcode %d!\n", ntohs(a_hdr->ar_op));
+    }
+  } else
+    fprintf(stderr, "Get an ARP request not targeted to me!\n");
+}
 
 void sr_arp_send_request(struct sr_instance* sr, struct sr_arp_request *req)
 {
@@ -63,10 +94,14 @@ void sr_arp_send_request(struct sr_instance* sr, struct sr_arp_request *req)
  * This method is called each time the router receives a ARP reply
  * packet on the 'interface'.
  *
+ * On receiving an ARP reply, router needs to update ARP cache with
+ * newly gotten IP --> MAC mapping and look up the cache to see if 
+ * there is any ARP request pending on this IP, now since we know its
+ * MAC, we are ready to forward IP packets waiting on this request.
  *---------------------------------------------------------------------*/
 
-void sr_arp_handle_reply(struct sr_instance* sr, uint8_t * packet,
-			 unsigned int len, char* interface)
+void sr_arp_handle_reply(struct sr_instance* sr, uint8_t * packet /*lent*/,
+			 unsigned int len, char* interface /*lent*/)
 {
   /* REQUIRES */
   assert(sr);
@@ -84,17 +119,11 @@ void sr_arp_handle_reply(struct sr_instance* sr, uint8_t * packet,
   memcpy(sender_mac, e_hdr->ether_shost, ETHER_ADDR_LEN);
   sender_ip = a_hdr->ar_sip;
 
-  /* Debug("ARP reply: sender MAC: "); */
-  /* DebugMAC(sender_mac); */
-  /* Debug("ARP reply: sender IP: "); */
-  /* DebugIP(sender_ip); */
-
   /* Insert IP --> MAC to ARP cache and get the request created
      for the inserted IP. */
   struct sr_arp_request *req = sr_arpcache_insert(&(sr->arpcache),
 						  sender_ip, sender_mac);
   if (req) {
-    //Debug("Ready to forward packets...\n");
     struct sr_ip_packet *pkt;
 
     /* Since sender_mac is the dest_mac for the packets wait on the 'req',
@@ -102,7 +131,8 @@ void sr_arp_handle_reply(struct sr_instance* sr, uint8_t * packet,
     for (pkt = req->packets; pkt != NULL; pkt = pkt->next) {
       sr_ip_send_packet(sr, pkt, sender_mac);
     }    
-    
+
+    /* Free this request and IP packets associated with it. */
     sr_arpreq_destroy(&(sr->arpcache), req);
   }
 }
@@ -137,12 +167,12 @@ void sr_arp_send_reply(struct sr_instance* sr,
   assert(packet);
   assert(interface);
 
-  struct sr_if* iface = sr_get_interface(sr, interface); // get the ethernet interface
-  struct sr_ethernet_hdr* e_hdr = 0; // Ethernet header
-  struct sr_arphdr*       a_hdr = 0; // ARP header
+  struct sr_if* iface = sr_get_interface(sr, interface);
+  struct sr_ethernet_hdr* e_hdr = 0;
+  struct sr_arphdr*       a_hdr = 0;
 
-  e_hdr = (struct sr_ethernet_hdr*) packet;
-  a_hdr = (struct sr_arphdr*) (packet + sizeof(struct sr_ethernet_hdr));
+  e_hdr = (struct sr_ethernet_hdr *) packet;
+  a_hdr = (struct sr_arphdr *) (packet + sizeof(struct sr_ethernet_hdr));
 
   /*-- Construct ARP reply in place, ie, modify 'packet' buffer directly. --*/
 

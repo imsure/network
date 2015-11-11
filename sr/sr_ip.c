@@ -61,14 +61,11 @@ uint32_t sr_router_nexthop(struct sr_instance* sr, uint32_t target_ip,
   uint32_t nexthop = 0;
   
   while(rt_walker) {
-    //    printf("In rt, looking at: %s\n", inet_ntoa(rt_walker->dest));
     if (rt_walker->mask.s_addr != 0x0) {
       if (rt_walker->dest.s_addr == (target_ip & rt_walker->mask.s_addr)) {
-	//	printf("Next hop found: %s\n", inet_ntoa(rt_walker->dest));
 	if (rt_walker->gw.s_addr != 0x0) {
 	  nexthop = rt_walker->gw.s_addr;
 	} else {
-	  //nexthop = rt_walker->dest.s_addr;
 	  /* If the gateway entry is 0.0.0.0, next hop is the target,
 	     the dest column is just a prefix match, not exact match. */
 	  nexthop = target_ip;
@@ -112,7 +109,7 @@ char *sr_router_interface(struct sr_instance* sr, uint32_t ip)
 
 /*---------------------------------------------------------------------
  * Method: sr_ip_forward
- * Scope:  Global
+ * Scope:  Local
  *
  * 'sr' forward IP 'packet' with length of 'len' to target IP 'target_ip'.
  *
@@ -128,6 +125,7 @@ void sr_ip_forward(struct sr_instance* sr, uint8_t * packet,
 		   unsigned int len, uint32_t target_ip, char *interface)
 {
   char *iface_out = (char *) malloc(sr_IFACE_NAMELEN);
+  
   /* Find the next hop in the routing table and the interface
      through which to send the packet to the next hop. */
   uint32_t nexthop = sr_router_nexthop(sr, target_ip, iface_out);
@@ -236,10 +234,14 @@ void sr_ip_handler(struct sr_instance* sr, uint8_t * packet,
   /* sr_ip_sanity_check() */
 
   if (send_to_self(sr, ip_hdr)) {
+    
     sr_ip_handle_packet_sent2self(sr, packet, len, interface);
+    
   } else {
+    
     uint32_t ip_target = ip_hdr->ip_dst.s_addr; // target IP
     sr_ip_forward(sr, packet, len, ip_target, interface);
+    
   }
 
 }/* end sr_ForwardPacket */
@@ -297,6 +299,9 @@ uint16_t checksum(struct ip *ip, int len)
  * Method: sr_ip_send_packet
  * Scope:  Global
  *
+ * Sends out IP packet 'ip_packet' which is targeted to 'dest_mac'.
+ * Note that 'ip_packet' is not the original raw ethernet packet received
+ * by sr, it wraps the real IP packet with some additional info.
  *---------------------------------------------------------------------*/
 
 void sr_ip_send_packet(struct sr_instance* sr,
@@ -322,8 +327,10 @@ void sr_ip_send_packet(struct sr_instance* sr,
   memcpy(ip_hdr2, ip_hdr, sizeof(struct ip));
   
   ip_hdr2->ip_sum = 0; // set checksum field to 0
+  /* Recompute IP header checksum */
   checksum_updated = checksum(ip_hdr2, sizeof(struct ip));
   ip_hdr->ip_sum = checksum_updated;
+  free(ip_hdr2);
 
   int success = sr_send_packet(sr, packet, ip_packet->len, ip_packet->iface_out);
   if (success != 0) {
@@ -331,6 +338,13 @@ void sr_ip_send_packet(struct sr_instance* sr,
   }
 }
 
+
+/*------------------------------------------------------
+ * Scope:  Local
+ *
+ * Handles IP packets targeted to sr, which means no IP
+ * forwarding is needed.
+ *----------------------------------------------------*/
 
 void sr_ip_handle_packet_sent2self(struct sr_instance* sr, uint8_t * packet,
 				   unsigned int len, char* interface)
@@ -341,70 +355,18 @@ void sr_ip_handle_packet_sent2self(struct sr_instance* sr, uint8_t * packet,
 
   e_hdr = (struct sr_ethernet_hdr *) packet;
   ip_hdr = (struct ip *) (packet+sizeof(struct sr_ethernet_hdr));
-  if (ip_hdr->ip_p == 0x1) { // ICMP
-    icmp_hdr = (struct sr_icmphdr *) (packet + 34);
-    //    sr_icmp_print_header(icmp_hdr);
-    if (icmp_hdr->icmp_type == 0x8 && icmp_hdr->icmp_code == 0x0) { // echo request
-      /* Ethernet header */
-      uint8_t addr_tmp[6];
-      memcpy(addr_tmp, e_hdr->ether_dhost, 6);
-      memcpy(e_hdr->ether_dhost, e_hdr->ether_shost, 6);
-      memcpy(e_hdr->ether_shost, addr_tmp, 6);
+  
+  if (ip_hdr->ip_p == 0x1) { // ICMP payload
+    
+    icmp_hdr = (struct sr_icmphdr *) (packet + 34); // hardcoded constant! anyway...
 
-      /* IP header */
-      struct in_addr ip_addr_tmp = ip_hdr->ip_src;
-      ip_hdr->ip_src = ip_hdr->ip_dst;
-      ip_hdr->ip_dst = ip_addr_tmp;
-      ip_hdr->ip_sum = 0;
-      ip_hdr->ip_sum = checksum(ip_hdr, sizeof(struct ip));
+    if (icmp_hdr->icmp_type == 0x8 &&
+	icmp_hdr->icmp_code == 0x0) { // echo request
 
-      /* ICMP header */
-      icmp_hdr->icmp_type = 0x0;
-      icmp_hdr->icmp_chksum = 0x0;
-      icmp_hdr->icmp_chksum = icmp_checksum((uint16_t *)icmp_hdr,
-					    ntohs(ip_hdr->ip_len) - 20);
-      int success = sr_send_packet(sr, packet, len, interface);
-      if (success != 0) {
-	fprintf(stderr, "%s: Sending packet failed!\n", __func__);
-      }
+      sr_icmp_echo_reply(sr, packet, len, interface, e_hdr, ip_hdr, icmp_hdr);
     } 
   } else if (ip_hdr->ip_p == 17 || ip_hdr->ip_p == 6) { // UDP or TCP payload
-    uint8_t *new_pkt = (uint8_t *) calloc(1, 70);
-    struct sr_ethernet_hdr *new_e_hdr = (struct sr_ethernet_hdr *) new_pkt;
-    struct ip *new_ip_hdr = (struct ip *) (new_pkt + 14);
-    struct sr_icmphdr *new_icmp_hdr = (struct sr_icmphdr *) (new_pkt + 34);
-
-    /* ethernet header */
-    memcpy(new_e_hdr->ether_dhost, e_hdr->ether_shost, 6);
-    memcpy(new_e_hdr->ether_shost, e_hdr->ether_dhost, 6);
-    new_e_hdr->ether_type = htons(0x0800);
-
-    /* IP header */
-    new_ip_hdr->ip_hl = 5;
-    new_ip_hdr->ip_v = 4;
-    new_ip_hdr->ip_tos = 0;
-    new_ip_hdr->ip_len = htons(56);
-    new_ip_hdr->ip_id = ip_hdr->ip_id;
-    new_ip_hdr->ip_off = ip_hdr->ip_off;
-    new_ip_hdr->ip_ttl = 64;
-    new_ip_hdr->ip_p = 1;
-    new_ip_hdr->ip_src = ip_hdr->ip_dst;
-    new_ip_hdr->ip_dst = ip_hdr->ip_src;
-    new_ip_hdr->ip_sum = 0;
-    new_ip_hdr->ip_sum = checksum(new_ip_hdr, 20);
-
-    /* ICMP port unreachable */
-    new_icmp_hdr->icmp_type = 3;
-    new_icmp_hdr->icmp_code = 3;
-    new_icmp_hdr->id = 0;
-    new_icmp_hdr->seqno = 0;
-    memcpy(new_pkt+42, ip_hdr, 28);
-    new_icmp_hdr->icmp_chksum = 0;
-    new_icmp_hdr->icmp_chksum = icmp_checksum((uint16_t *)new_icmp_hdr, 36);
-
-    int success = sr_send_packet(sr, new_pkt, 70, interface);
-    if (success != 0) {
-      fprintf(stderr, "%s: Sending packet failed!\n", __func__);
-    }
+    
+    sr_icmp_port_unreach(sr, packet, len, interface, e_hdr, ip_hdr);
   }
 }

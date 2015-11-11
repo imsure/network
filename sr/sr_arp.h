@@ -68,6 +68,8 @@ struct sr_arpcache {
   pthread_mutexattr_t attr;
 };
 
+void sr_arp_handler(struct sr_instance* sr, uint8_t * packet/* lent */,
+		    unsigned int len, char* interface/* lent */);
 void sr_arp_send_reply(struct sr_instance* sr, 
 		       uint8_t * packet/* lent */,
 		       unsigned int len,
