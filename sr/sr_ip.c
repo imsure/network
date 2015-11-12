@@ -131,7 +131,6 @@ void sr_ip_forward(struct sr_instance* sr, uint8_t * packet,
      through which to send the packet to the next hop. */
   uint32_t nexthop = sr_router_nexthop(sr, target_ip, iface_out);
 
-  struct sr_if *iface = sr_get_interface(sr, interface);
   struct ip *ip_hdr = (struct ip *) (packet+14);
   struct sr_ethernet_hdr *e_hdr = (struct sr_ethernet_hdr *) packet;
   
@@ -228,7 +227,6 @@ void sr_ip_handler(struct sr_instance* sr, uint8_t * packet,
  *---------------------------------------------------------------------*/
 int send_to_self(struct sr_instance *sr, struct ip *ip_hdr)
 {
-  uint32_t ip_sender = ip_hdr->ip_src.s_addr;
   uint32_t ip_target = ip_hdr->ip_dst.s_addr;
 
   struct sr_if *if_walker = sr->if_list;

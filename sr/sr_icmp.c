@@ -186,10 +186,9 @@ void sr_icmp_ttl_exceeded(struct sr_instance *sr, uint8_t * packet,
 void sr_icmp_host_unreachable(struct sr_instance *sr, struct sr_arp_request *req)
 {
   struct sr_ethernet_hdr *e_hdr;
-  struct ip *ip_hdr, *ip_hdr2;
+  struct ip *ip_hdr;
   struct sr_icmphdr *icmp_hdr, *icmp_hdr_waited;
   uint8_t *packet_waited;
-  uint16_t ip_id; // identification field in IP header
 
   assert(req);
 
@@ -243,8 +242,6 @@ void sr_icmp_host_unreachable(struct sr_instance *sr, struct sr_arp_request *req
     uint8_t dest_mac[ETHER_ADDR_LEN], src_mac[ETHER_ADDR_LEN];
     memcpy(src_mac, packet_waited, ETHER_ADDR_LEN);
     memcpy(dest_mac, packet_waited+ETHER_ADDR_LEN, ETHER_ADDR_LEN);
-    uint32_t icmp_target_ip =
-      ((struct ip *)(packet_waited+sizeof(struct sr_ethernet_hdr)))->ip_src.s_addr;
     struct ip *ip_hdr_waited = (struct ip *)(packet_waited+sizeof(struct sr_ethernet_hdr));
 
     struct sr_if *interface = sr_get_interface_by_mac(sr, src_mac);
