@@ -34,5 +34,8 @@ void sr_icmp_echo_reply(struct sr_instance *sr, uint8_t * packet,
 void sr_icmp_port_unreach(struct sr_instance *sr, uint8_t * packet,
 			  unsigned int len, char* interface,
 			  struct sr_ethernet_hdr *e_hdr, struct ip *ip_hdr);
+void sr_icmp_ttl_exceeded(struct sr_instance *sr, uint8_t * packet,
+			  unsigned int len, char* interface,
+			  struct sr_ethernet_hdr *e_hdr, struct ip *ip_hdr);
 
 #endif /* --  sr_ICMP_H -- */

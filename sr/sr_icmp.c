@@ -138,6 +138,61 @@ void sr_icmp_port_unreach(struct sr_instance *sr, uint8_t * packet,
 
 
 /*---------------------------------------------------------------------
+ * Scope:  Global
+ *
+ * Send ICMP TTL excedded. It will be called by IP module, so 
+ * pointers to ethernet and ip headers will be passed as well.
+ *---------------------------------------------------------------------*/
+
+void sr_icmp_ttl_exceeded(struct sr_instance *sr, uint8_t * packet,
+			  unsigned int len, char* interface,
+			  struct sr_ethernet_hdr *e_hdr, struct ip *ip_hdr)
+{
+  struct sr_if *iface = sr_get_interface(sr, interface);
+  
+  /* Send ICMP time exceeded message. This is
+     need for traceroute to work. */
+  uint8_t *new_pkt = (uint8_t *) calloc(1, 70);
+  struct sr_ethernet_hdr *new_e_hdr = (struct sr_ethernet_hdr *) new_pkt;
+  struct ip *new_ip_hdr = (struct ip *) (new_pkt + 14);
+  struct sr_icmphdr *new_icmp_hdr = (struct sr_icmphdr *) (new_pkt + 34);
+
+  /* ethernet header */
+  memcpy(new_e_hdr->ether_dhost, e_hdr->ether_shost, 6);
+  memcpy(new_e_hdr->ether_shost, e_hdr->ether_dhost, 6);
+  new_e_hdr->ether_type = htons(0x0800);
+
+  /* IP header */
+  new_ip_hdr->ip_hl = 5;
+  new_ip_hdr->ip_v = 4;
+  new_ip_hdr->ip_tos = 0;
+  new_ip_hdr->ip_len = htons(56);
+  new_ip_hdr->ip_id = ip_hdr->ip_id;
+  new_ip_hdr->ip_off = ip_hdr->ip_off;
+  new_ip_hdr->ip_ttl = 64;
+  new_ip_hdr->ip_p = 1;
+  new_ip_hdr->ip_src.s_addr = iface->ip;
+  new_ip_hdr->ip_dst = ip_hdr->ip_src;
+  new_ip_hdr->ip_sum = 0;
+  new_ip_hdr->ip_sum = checksum(new_ip_hdr, 20);
+
+  /* ICMP ttl exceeded: type: 11, code: 0 */
+  new_icmp_hdr->icmp_type = 11;
+  new_icmp_hdr->icmp_code = 0;
+  new_icmp_hdr->id = 0;
+  new_icmp_hdr->seqno = 0;
+  memcpy(new_pkt+42, ip_hdr, 28);
+  new_icmp_hdr->icmp_chksum = 0;
+  new_icmp_hdr->icmp_chksum = icmp_checksum((uint16_t *)new_icmp_hdr, 36);
+
+  int success = sr_send_packet(sr, new_pkt, 70, interface);
+  if (success != 0) {
+    fprintf(stderr, "%s: Sending packet failed!\n", __func__);
+  }
+}
+
+
+/*---------------------------------------------------------------------
  * Method: sr_icmp_host_unreachable
  * Scope:  Global
  *
