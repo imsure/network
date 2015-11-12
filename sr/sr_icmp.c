@@ -20,30 +20,13 @@
 #include "sr_router.h"
 #include "sr_arp.h"
 #include "sr_ip.h"
+#include "sr_utils.h"
 
 void sr_icmp_print_header(struct sr_icmphdr *hdr)
 {
   printf("Type: %d, code: %d, chksum: %d, id: %d, seqno: %d\n",
 	 hdr->icmp_type, hdr->icmp_code, hdr->icmp_chksum,
 	 hdr->id, hdr->seqno);
-}
-
-uint16_t icmp_checksum(uint16_t *buffer, int length)
-{
-  unsigned long sum; 
-
-  // initialize sum to zero and loop until length (in words) is 0 
-  for (sum=0; length>1; length-=2) // sizeof() returns number of bytes, we're interested in number of words 
-    sum += *buffer++;// add 1 word of buffer to sum and proceed to the next 
-
-  // we may have an extra byte 
-  if (length > 0)
-    sum += *(char *)buffer;
-
-  while (sum >> 16)
-    sum = (sum >> 16) + (sum & 0xFFFF);  // add high 16 to low 16 
-
-  return ~sum;
 }
 
 
@@ -75,7 +58,7 @@ void sr_icmp_echo_reply(struct sr_instance *sr, uint8_t * packet,
   /* ICMP header */
   icmp_hdr->icmp_type = 0x0;
   icmp_hdr->icmp_chksum = 0x0;
-  icmp_hdr->icmp_chksum = icmp_checksum((uint16_t *)icmp_hdr,
+  icmp_hdr->icmp_chksum = checksum((uint16_t *)icmp_hdr,
 					ntohs(ip_hdr->ip_len) - 20);
   int success = sr_send_packet(sr, packet, len, interface);
   if (success != 0) {
@@ -128,7 +111,7 @@ void sr_icmp_port_unreach(struct sr_instance *sr, uint8_t * packet,
   new_icmp_hdr->seqno = 0;
   memcpy(new_pkt+42, ip_hdr, 28);
   new_icmp_hdr->icmp_chksum = 0;
-  new_icmp_hdr->icmp_chksum = icmp_checksum((uint16_t *)new_icmp_hdr, 36);
+  new_icmp_hdr->icmp_chksum = checksum((uint16_t *)new_icmp_hdr, 36);
 
   int success = sr_send_packet(sr, new_pkt, 70, interface);
   if (success != 0) {
@@ -183,7 +166,7 @@ void sr_icmp_ttl_exceeded(struct sr_instance *sr, uint8_t * packet,
   new_icmp_hdr->seqno = 0;
   memcpy(new_pkt+42, ip_hdr, 28);
   new_icmp_hdr->icmp_chksum = 0;
-  new_icmp_hdr->icmp_chksum = icmp_checksum((uint16_t *)new_icmp_hdr, 36);
+  new_icmp_hdr->icmp_chksum = checksum((uint16_t *)new_icmp_hdr, 36);
 
   int success = sr_send_packet(sr, new_pkt, 70, interface);
   if (success != 0) {
@@ -215,6 +198,9 @@ void sr_icmp_host_unreachable(struct sr_instance *sr, struct sr_arp_request *req
   struct sr_arpcache_entry *entry = sr_arpcache_search(&(sr->arpcache),
 						       default_hop);
   uint8_t default_mac[ETHER_ADDR_LEN];
+
+  /* This is awkward and unnecessary, it is only for fullfilling
+     assignment requirement. */
   if (entry == NULL) {
     uint8_t *arp_req_packet = (uint8_t *) malloc(sizeof(struct sr_ethernet_hdr)
 						 + sizeof(struct sr_arphdr));
@@ -244,14 +230,11 @@ void sr_icmp_host_unreachable(struct sr_instance *sr, struct sr_arp_request *req
       fprintf(stderr, "%s: Sending packet failed!\n", __func__);
     }
 
+    free(arp_req_packet);
     //sleep(1);
-    usleep(500000);
-    //    sleep(1);
-    //    entry = sr_arpcache_search(&(sr->arpcache), default_hop);
+    usleep(500000);     /* wait for arp reply to arrive */
 
   } else {
-    //Debug("ARP cache entry found: ");
-    //sr_arpcache_print_entry(entry);
     memcpy(default_mac, entry->mac, 6);
   }
 
@@ -316,9 +299,7 @@ void sr_icmp_host_unreachable(struct sr_instance *sr, struct sr_arp_request *req
 	   packet_waited+sizeof(struct sr_ethernet_hdr),
 	   28);
 
-    icmp_hdr->icmp_chksum = icmp_checksum((uint16_t *)icmp_hdr, 36);
-    //    sr_icmp_print_header(icmp_hdr_waited);
-    //    sr_icmp_print_header(icmp_hdr);
+    icmp_hdr->icmp_chksum = checksum((uint16_t *)icmp_hdr, 36);
 
     /*--- End of filling ICMP header & payload ---*/
 

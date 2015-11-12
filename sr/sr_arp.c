@@ -132,6 +132,7 @@ void sr_arp_handle_reply(struct sr_instance* sr, uint8_t * packet /*lent*/,
       sr_ip_send_packet(sr, pkt, sender_mac);
     }    
 
+    free(sender_mac);
     /* Free this request and IP packets associated with it. */
     sr_arpreq_destroy(&(sr->arpcache), req);
   }

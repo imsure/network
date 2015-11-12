@@ -19,6 +19,7 @@
 #include "sr_arp.h"
 #include "sr_ip.h"
 #include "sr_icmp.h"
+#include "sr_utils.h"
 
 
 /*---------------------------------------------------------------------
@@ -145,14 +146,12 @@ void sr_ip_forward(struct sr_instance* sr, uint8_t * packet,
   struct sr_arpcache_entry *entry = sr_arpcache_search(&(sr->arpcache), nexthop);
   
   if (entry == NULL) {
-    //printf("ARP cache entry not found\n");
+
     /* Enqueue the ARP request for next hop. */
     struct sr_arp_request *req = sr_arpreq_enqueue(&(sr->arpcache), nexthop,
 						   packet, len, iface_out);
-    //sr_arpcache_handle_request(sr, req); // possible race condition?
+    //sr_arpcache_handle_request(sr, req); // cause potential race condition
   } else {
-    //Debug("ARP cache entry found: ");
-    //sr_arpcache_print_entry(entry);
 
     /* Construct an ip_packet with necessary information and send. */
     struct sr_ip_packet ip_packet;
@@ -242,27 +241,6 @@ int send_to_self(struct sr_instance *sr, struct ip *ip_hdr)
   return 0;
 }
 
-
-uint16_t checksum(struct ip *ip, int len)
-{
-  long sum = 0;  /* assume 32 bit long, 16 bit short */
-  uint16_t *ip_walker = (uint16_t *)ip;
-
-  while(len > 1) {
-    sum += *ip_walker++;
-    if(sum & 0x80000000)   /* if high order bit set, fold */
-      sum = (sum & 0xFFFF) + (sum >> 16);
-    len -= 2;
-  }
-
-  if(len)       /* take care of left over byte */
-    sum += (unsigned short) *(unsigned char *)ip_walker;
-          
-  while(sum>>16)
-    sum = (sum & 0xFFFF) + (sum >> 16);
-
-  return ~sum;
-}
 
 /*---------------------------------------------------------------------
  * Method: sr_ip_send_packet
