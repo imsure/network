@@ -313,8 +313,8 @@ static void sr_load_rt_wrap(struct sr_instance* sr, char* rtable) {
     }
 
 
-    printf("Loading routing table\n");
-    printf("---------------------------------------------\n");
+    printf("\nLoading (static) routing table\n");
+    printf("-----------------------------------------------------\n");
     sr_print_routing_table(sr);
-    printf("---------------------------------------------\n");
+    printf("-----------------------------------------------------\n\n");
 }

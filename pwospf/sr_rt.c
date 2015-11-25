@@ -139,7 +139,7 @@ void sr_print_routing_table(struct sr_instance* sr)
         return;
     }
 
-    printf("Destination\tGateway\t\tMask\tIface\n");
+    printf("Destination\tGateway\t\tMask\t\tIface\n");
 
     rt_walker = sr->routing_table;
     
@@ -163,9 +163,15 @@ void sr_print_routing_entry(struct sr_rt* entry)
     assert(entry);
     assert(entry->interface);
 
-    printf("%s\t\t",inet_ntoa(entry->dest));
+    if (entry->dest.s_addr == 0)
+      printf("%s\t\t",inet_ntoa(entry->dest));
+    else
+      printf("%s\t",inet_ntoa(entry->dest));
     printf("%s\t",inet_ntoa(entry->gw));
-    printf("%s\t",inet_ntoa(entry->mask));
+    if (entry->mask.s_addr == 0)
+      printf("%s\t\t",inet_ntoa(entry->mask));
+    else
+      printf("%s\t",inet_ntoa(entry->mask));
     printf("%s\n",entry->interface);
 
 } /* -- sr_print_routing_entry -- */
