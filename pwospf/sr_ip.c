@@ -20,6 +20,7 @@
 #include "sr_ip.h"
 #include "sr_icmp.h"
 #include "sr_utils.h"
+#include "pwospf_protocol.h"
 
 
 /*---------------------------------------------------------------------
@@ -199,6 +200,11 @@ void sr_ip_handler(struct sr_instance* sr, uint8_t * packet,
     return;
   }
 
+
+  if (ip_hdr->ip_dst.s_addr == htonl(OSPF_AllSPFRouters)) {
+    printf("Received PWOSPF HELLO packet!\n");
+    return;
+  }
 
   if (send_to_self(sr, ip_hdr)) {
     

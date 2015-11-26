@@ -26,3 +26,18 @@ uint16_t checksum(void *data, int len)
   return ~sum;
 }
 
+void print_mac(uint8_t *mac)
+{
+  for (int i = 0; i < 5; i++) {
+    printf("%02x:", mac[i]);
+  }
+  printf("%02x", mac[5]);
+}
+
+void print_ip(uint8_t *ip)
+{
+  for (int i = 0; i < 3; i++) {
+    printf("%d.", ip[i]);
+  }
+  printf("%d", ip[3]);
+}

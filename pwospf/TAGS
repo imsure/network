@@ -1,0 +1,437 @@
+
+sha1.c,178
+#define SHA1CircularShift(46,1709
+void SHA1Reset(71,2241
+int SHA1Result(104,3073
+void SHA1Input(143,3765
+void SHA1ProcessMessageBlock(207,5298
+void SHA1PadMessage(326,8763
+
+sr_arp.c,675
+void sr_arp_handler(33,799
+void sr_arp_send_request(57,1705
+void sr_arp_handle_reply(103,3668
+void sr_arp_send_reply(161,5707
+struct sr_arpcache_entry *sr_arpcache_search(sr_arpcache_search214,7378
+struct sr_arp_request *sr_arpreq_enqueue(sr_arpreq_enqueue257,8726
+struct sr_arp_request *sr_arpcache_insert(sr_arpcache_insert318,10577
+void sr_arpreq_destroy(375,12083
+void sr_arpcache_dump(414,12915
+int sr_arpcache_init(429,13468
+void sr_arpcache_destroy(451,14057
+void sr_arpcache_handle_request(464,14416
+void sr_arpcache_sweep_reqs(492,15353
+void *sr_arpcache_timeout_handler(sr_arpcache_timeout_handler514,16033
+void sr_arpcache_print_entry(545,16801
+
+sr_dumper.c,84
+sf_write_header(8,101
+sr_dump_open(29,692
+sr_dump(53,1267
+sr_dump_close(67,1706
+
+sr_icmp.c,178
+void sr_icmp_print_header(25,539
+void sr_icmp_echo_reply(40,1032
+void sr_icmp_port_unreach(77,2243
+void sr_icmp_ttl_exceeded(130,4108
+void sr_icmp_host_unreachable(186,5995
+
+sr_if.c,273
+struct sr_if* sr_get_interface_by_mac(38,877
+struct sr_if* sr_get_interface(69,1681
+void sr_add_interface(97,2331
+void sr_set_ether_addr(135,3420
+void sr_set_ether_mask(160,4048
+void sr_set_ether_ip(185,4662
+void sr_print_if_list(209,5246
+void sr_print_if(238,5870
+
+sr_ip.c,297
+uint32_t sr_router_default_nexthop(31,800
+uint32_t sr_router_nexthop(58,1562
+char *sr_router_interface(sr_router_interface93,2586
+void sr_ip_forward(125,3447
+void sr_ip_handler(179,5301
+int send_to_self(228,6649
+void sr_ip_send_packet(252,7331
+void sr_ip_handle_packet_sent2self(294,8695
+
+sr_main.c,482
+#define __EXTENSIONS__17,453
+#define VERSION_INFO 41,946
+#define DEFAULT_AUTH_KEY_FILE 42,1016
+#define DEFAULT_PORT 43,1057
+#define DEFAULT_HOST 44,1083
+#define DEFAULT_SERVER 45,1113
+#define DEFAULT_RTABLE 46,1151
+#define DEFAULT_TOPO 47,1183
+int main(58,1617
+static void usage(178,4771
+void sr_set_user(194,5441
+static void sr_destroy_instance(221,6061
+static void sr_init_instance(243,6549
+int sr_verify_routing_table(272,7292
+static void sr_load_rt_wrap(308,8131
+
+sr_router.c,51
+void sr_init(33,843
+void sr_handlepacket(73,2159
+
+sr_rt.c,156
+#define __USE_MISC 19,423
+int sr_load_rt(30,709
+void sr_add_rt_entry(87,2255
+void sr_print_routing_table(132,3546
+void sr_print_routing_entry(160,4203
+
+sr_utils.c,25
+uint16_t checksum(8,108
+
+sr_vns_comm.c,444
+int sr_connect_to_server(67,2054
+int sr_handle_hwinfo(175,5162
+int sr_handle_rtable(235,7325
+int sr_handle_auth_request(253,7754
+#define AUTH_KEY_LEN 254,7828
+#define SHA1_LEN 255,7852
+int sr_handle_auth_status(317,9684
+int sr_read_from_server(333,10267
+int sr_read_from_server_expect(338,10381
+sr_ether_addrs_match_interface(532,16450
+int sr_send_packet(578,17825
+void sr_log_packet(640,19492
+int  sr_arp_req_not_for_us(667,20134
+
+vnlconn.c,137
+struct VnlConn* vnl_open(9,140
+ssize_t vnl_read(42,1269
+ssize_t vnl_write(47,1393
+void vnl_close(52,1526
+void vnl_checkconn(58,1647
+
+sha1.h,343
+#define _SHA1_H_25,726
+typedef struct SHA1Context31,831
+    unsigned Message_Digest[Message_Digest33,860
+    unsigned Length_Low;35,932
+    unsigned Length_High;36,1003
+    unsigned char Message_Block[Message_Block38,1075
+    int Message_Block_Index;39,1146
+    int Computed;41,1218
+    int Corrupted;42,1289
+} SHA1Context;43,1360
+
+sr_arp.h,832
+#define sr_ARP_H11,288
+#define SR_ARPCACHE_SIZE 30,572
+#define SR_ARPCACHE_TIME_OUT 31,623
+struct sr_arpcache_entry 36,732
+  uint32_t ip;37,759
+  unsigned char mac[mac38,823
+  time_t time_added;40,861
+  int is_valid;41,915
+struct sr_ip_packet 45,1027
+  uint8_t *buf;buf46,1049
+  unsigned int len;47,1119
+  char *iface_out;iface_out48,1168
+  struct sr_ip_packet *next;next49,1209
+struct sr_arp_request 53,1326
+  uint32_t ip;54,1350
+  char iface_out[iface_out55,1365
+  time_t time_sent;56,1448
+  int sent_times;57,1522
+  struct sr_ip_packet *packets;packets59,1584
+  struct sr_arp_request *next;next60,1662
+struct sr_arpcache 64,1723
+  struct sr_arpcache_entry entries[entries65,1744
+  struct sr_arp_request *requests;requests66,1798
+  pthread_mutex_t lock;67,1857
+  pthread_mutexattr_t attr;68,1918
+
+sr_dumper.h,761
+#define PCAP_VERSION_MAJOR 17,281
+#define PCAP_VERSION_MINOR 18,310
+#define PCAP_ETHA_LEN 19,339
+#define PCAP_PROTO_LEN 20,363
+#define TCPDUMP_MAGIC 22,389
+#define LINKTYPE_ETHERNET 24,423
+#define min(26,452
+struct pcap_file_header 29,515
+  uint32_t   magic;30,541
+  uint16_t version_major;31,588
+  uint16_t version_minor;32,641
+  int     thiszone;33,694
+  uint32_t   sigfigs;34,750
+  uint32_t   snaplen;35,807
+  uint32_t   linktype;36,878
+struct pcap_pkthdr 40,964
+  struct timeval ts;41,985
+  uint32_t caplen;42,1028
+  uint32_t len;43,1088
+struct pcap_timeval 51,1307
+    int tv_sec;52,1329
+    int tv_usec;53,1369
+struct pcap_sf_pkthdr 60,1485
+    struct pcap_timeval ts;61,1509
+    uint32_t caplen;62,1558
+    uint32_t len;63,1619
+
+sr_icmp.h,25
+#define sr_ICMP_H11,290
+
+sr_if.h,251
+#define sr_INTERFACE_H13,356
+#define sr_IFACE_NAMELEN 27,562
+struct sr_if38,842
+  char name[name40,857
+  unsigned char addr[addr41,888
+  uint32_t ip;42,913
+  uint32_t speed;43,928
+  volatile uint32_t mask;44,946
+  struct sr_if* next;45,972
+
+sr_ip.h,23
+#define sr_IP_H11,287
+
+sr_protocol.h,1713
+#define SR_PROTOCOL_H34,1448
+#define IP_MAXPACKET 44,1597
+#define __LITTLE_ENDIAN 52,1759
+#define __BIG_ENDIAN 55,1813
+#define __BYTE_ORDER 59,1880
+#define __BYTE_ORDER 64,1967
+#define __BYTE_ORDER 69,2056
+#define __BYTE_ORDER 74,2141
+struct ip81,2251
+    unsigned int ip_hl:ip_hl84,2301
+    unsigned int ip_v:ip_v85,2348
+    unsigned int ip_v:ip_v87,2423
+    unsigned int ip_hl:ip_hl88,2463
+    uint8_t ip_tos;92,2562
+    uint16_t ip_len;93,2606
+    uint16_t ip_id;94,2648
+    uint16_t ip_off;95,2691
+#define	IP_RF 96,2742
+#define	IP_DF 97,2794
+#define	IP_MF 98,2842
+#define	IP_OFFMASK 99,2891
+    uint8_t ip_ttl;100,2950
+    uint8_t ip_p;101,2991
+    uint16_t ip_sum;102,3026
+    struct in_addr ip_src,103,3064
+    struct in_addr ip_src, ip_dst;103,3064
+struct sr_icmphdr110,3184
+  uint8_t   icmp_type;112,3204
+  uint8_t   icmp_code;113,3250
+  uint16_t  icmp_chksum;114,3296
+  uint16_t  id;115,3346
+  uint16_t  seqno;116,3379
+struct sr_ethernet_hdr124,3588
+#define ETHER_ADDR_LEN 127,3636
+    uint8_t  ether_dhost[ether_dhost129,3668
+    uint8_t  ether_shost[ether_shost130,3748
+    uint16_t ether_type;131,3823
+#define ARPHDR_ETHER 135,3940
+#define IPPROTO_ICMP 139,3995
+#define ETHERTYPE_IP 143,4084
+#define ETHERTYPE_ARP 147,4172
+#define ARP_REQUEST 150,4252
+#define ARP_REPLY 151,4274
+struct sr_arphdr 153,4297
+    unsigned short  ar_hrd;155,4317
+    unsigned short  ar_pro;156,4392
+    unsigned char   ar_hln;157,4467
+    unsigned char   ar_pln;158,4542
+    unsigned short  ar_op;159,4617
+    unsigned char   ar_sha[ar_sha160,4692
+    uint32_t        ar_sip;161,4773
+    unsigned char   ar_tha[ar_tha162,4848
+    uint32_t        ar_tip;163,4929
+
+sr_router.h,742
+#define SR_ROUTER_H10,313
+#define Debug(25,582
+#define DebugMAC(26,627
+#define DebugIP(30,812
+#define Debug(35,1014
+#define DebugMAC(36,1053
+#define INIT_TTL 39,1094
+#define PACKET_DUMP_SIZE 40,1115
+struct sr_instance53,1446
+    int  sockfd;55,1467
+    struct VnlConn* vc;57,1520
+    char user[user59,1551
+    char host[host60,1586
+    char 61,1621
+    char auth_key_fn[auth_key_fn62,1671
+    unsigned short topo_id;63,1721
+    struct sockaddr_in sr_addr;64,1749
+    struct sr_if* if_list;65,1805
+    struct sr_rt* routing_table;66,1857
+    struct sr_arpcache arpcache;67,1910
+    pthread_attr_t attr;68,1959
+    FILE* logfile;69,2027
+  volatile uint8_t  hw_init;71,2047
+  struct pwospf_subsys* ospf_subsys;74,2151
+
+sr_rt.h,207
+#define sr_RT_H13,355
+struct sr_rt30,678
+    struct in_addr dest;32,693
+    struct in_addr gw;33,718
+    struct in_addr mask;34,741
+    char   interface[interface35,766
+    struct sr_rt* next;36,806
+
+sr_utils.h,24
+#define sr_UTILS_H2,19
+
+vnlconn.h,113
+#define VNLCONN_H9,117
+struct VnlConn 13,176
+	pid_t ssh_pid;14,193
+	int read_fd;15,209
+	int write_fd;16,223
+
+vnscommand.h,3201
+#define __VNSCOMMAND_H9,352
+#define VNSOPEN 11,376
+#define VNSCLOSE 12,400
+#define VNSPACKET 13,424
+#define VNSBANNER 14,448
+#define VNSHWINFO 15,472
+#define IDSIZE 17,497
+    uint32_t mLen;25,732
+    uint32_t mType;26,751
+}__attribute__ ((__packed__)) c_base;27,771
+    uint32_t mLen;36,1027
+    uint32_t mType;37,1046
+    uint16_t topoID;38,1089
+    uint16_t pad;39,1159
+    char     mVirtualHostID[mVirtualHostID40,1199
+    char     mUID[mUID42,1325
+    char     mPass[mPass43,1404
+}__attribute__ ((__packed__)) c_open;45,1433
+    uint32_t mLen;54,1690
+    uint32_t mType;55,1709
+    char     mErrorMessage[mErrorMessage56,1729
+}__attribute__ ((__packed__)) c_close;58,1763
+    uint32_t mLen;67,2024
+    uint32_t mType;68,2043
+}__attribute__ ((__packed__)) c_hwrequest;70,2064
+    uint32_t mLen;79,2327
+    uint32_t mType;80,2346
+    char     mBannerMessage[mBannerMessage81,2366
+}__attribute__ ((__packed__)) c_banner;83,2401
+    uint32_t mLen;92,2668
+    uint32_t mType;93,2687
+    char     mInterfaceName[mInterfaceName94,2707
+    uint8_t  ether_dhost[ether_dhost95,2740
+    uint8_t  ether_shost[ether_shost96,2769
+    uint16_t ether_type;97,2798
+}__attribute__ ((__packed__)) c_packet_ethernet_header;99,2824
+    uint32_t mLen;103,2898
+    uint32_t mType;104,2917
+    char     mInterfaceName[mInterfaceName105,2937
+}__attribute__ ((__packed__)) c_packet_header;106,2970
+#define HWINTERFACE 112,3218
+#define HWSPEED 113,3243
+#define HWSUBNET 114,3268
+#define HWINUSE 115,3293
+#define HWFIXEDIP 116,3318
+#define HWETHER 117,3343
+#define HWETHIP 118,3368
+#define HWMASK 119,3393
+    uint32_t mKey;123,3436
+    char     value[value124,3455
+}__attribute__ ((__packed__)) c_hw_entry;125,3479
+#define MAXHWENTRIES 129,3539
+    uint32_t   mLen;130,3564
+    uint32_t   mType;131,3585
+    c_hw_entry mHWInfo[mHWInfo132,3607
+}__attribute__ ((__packed__)) c_hwinfo;133,3645
+#define VNS_RTABLE 137,3727
+#define VNS_OPEN_TEMPLATE 138,3756
+#define VNS_AUTH_REQUEST 139,3785
+#define VNS_AUTH_REPLY 140,3814
+#define VNS_AUTH_STATUS 141,3843
+    uint32_t mLen;146,3903
+    uint32_t mType;147,3922
+    char     mVirtualHostID[mVirtualHostID148,3942
+    char     rtable[rtable149,3979
+}__attribute__ ((__packed__)) c_rtable;150,4003
+    uint32_t ip;154,4081
+    uint8_t  num_masked_bits;155,4098
+}__attribute__ ((__packed__)) c_src_filter;156,4128
+    uint32_t     mLen;160,4190
+    uint32_t     mType;161,4213
+    char         templateName[templateName162,4237
+    char         mVirtualHostID[mVirtualHostID163,4272
+    c_src_filter srcFilters[srcFilters164,4313
+}__attribute__ ((__packed__)) c_open_template;165,4345
+    uint32_t mLen;170,4439
+    uint32_t mType;171,4458
+    uint8_t  salt[salt172,4478
+}__attribute__ ((__packed__)) c_auth_request;174,4501
+    uint32_t mLen;179,4592
+    uint32_t mType;180,4611
+    uint32_t usernameLen;181,4631
+    char     username[username182,4657
+}__attribute__ ((__packed__)) c_auth_reply;184,4760
+    uint32_t mLen;189,4888
+    uint32_t mType;190,4907
+    uint8_t  auth_ok;191,4927
+    char     msg[msg192,4949
+}__attribute__ ((__packed__)) c_auth_status;194,4971
+
+pwospf_protocol.h,1318
+#define PWOSPF_PROTOCOL_H13,349
+static const uint8_t OSPF_V2 15,376
+static const uint32_t OSPF_AllSPFRouters 17,418
+static const uint8_t OSPF_TYPE_HELLO 19,490
+static const uint8_t OSPF_TYPE_LSU 20,532
+static const uint8_t OSPF_TYPE_LSUPDATE 21,574
+static const uint8_t OSPF_NET_BROADCAST 22,619
+static const uint8_t OSPF_DEFAULT_HELLOINT 23,664
+static const uint8_t OSPF_DEFAULT_LSUINT 24,728
+static const uint8_t OSPF_NEIGHBOR_TIMEOUT 25,792
+static const uint8_t OSPF_TOPO_ENTRY_TIMEOUT 27,858
+static const uint8_t OSPF_DEFAULT_AUTHKEY 29,925
+static const uint16_t OSPF_MAX_HELLO_SIZE 31,989
+static const uint16_t OSPF_MAX_LSU_SIZE 32,1052
+static const uint8_t  OSPF_MAX_LSU_TTL 33,1115
+struct ospfv2_hdr36,1169
+    uint8_t version;38,1189
+    uint8_t type;39,1236
+    uint16_t len;40,1283
+    uint32_t rid;41,1353
+    uint32_t aid;42,1407
+    uint16_t csum;43,1457
+    uint16_t autype;44,1494
+    uint64_t audata;45,1541
+struct ospfv2_hello_hdr48,1626
+    uint32_t nmask;50,1652
+    uint16_t helloint;51,1709
+    uint16_t padding;52,1773
+struct ospfv2_lsu_hdr55,1823
+    uint16_t seq;57,1847
+    uint8_t  unused;58,1865
+    uint8_t  ttl;59,1886
+    uint32_t num_adv;60,1904
+struct ospfv2_lsu63,1986
+    uint32_t subnet;65,2006
+    uint32_t mask;66,2051
+    uint32_t rid;67,2101
+
+sr_pwospf.c,111
+int pwospf_init(31,844
+void pwospf_lock(61,1580
+void pwospf_unlock(74,1949
+void* pwospf_run_thread(88,2320
+
+sr_pwospf.h,117
+#define SR_PWOSPF_H11,290
+struct pwospf_subsys18,376
+    pthread_t thread;24,515
+    pthread_mutex_t lock;25,537

@@ -47,10 +47,6 @@ void sr_init(struct sr_instance* sr)
     pthread_create(&arp_thread, &(sr->attr),
 		   sr_arpcache_timeout_handler, sr);
 
-
-    /* Initialize PWOSPF subsystem */
-    pwospf_init(sr);
-
 } /* -- sr_init -- */
 
 

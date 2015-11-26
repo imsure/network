@@ -40,6 +40,7 @@
 #include "sr_router.h"
 #include "sr_if.h"
 #include "sr_protocol.h"
+#include "sr_pwospf.h"
 
 #include "sha1.h"
 #include "vnscommand.h"
@@ -484,9 +485,13 @@ int sr_read_from_server_expect(struct sr_instance* sr /* borrowed */, int expect
             sr_handle_hwinfo(sr,(c_hwinfo*)buf);
             if(sr_verify_routing_table(sr) != 0)
             {
-                fprintf(stderr,"Routing table not consistent with hardware\n");
-                return -1;
+	      //fprintf(stderr,"Routing table not consistent with hardware\n");
+	      //return -1;
             }
+	    
+	    /* Initialize PWOSPF subsystem once interfaces are created */
+	    pwospf_init(sr);
+
             printf(" <-- Ready to process packets --> \n");
             break;
 

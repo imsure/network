@@ -75,6 +75,11 @@
 #endif
 #endif
 
+#ifndef IP_V4
+#define IP_V4 4
+#endif
+
+
 /*
  * Structure of an internet header, naked of options.
  */
@@ -137,6 +142,10 @@ struct sr_ethernet_hdr
 
 #ifndef IPPROTO_ICMP
 #define IPPROTO_ICMP            0x0001  /* ICMP protocol */
+#endif
+
+#ifndef IPPROTO_OSPFv2
+#define IPPROTO_OSPFv2          89  /* ICMP protocol */
 #endif
 
 #ifndef ETHERTYPE_IP
