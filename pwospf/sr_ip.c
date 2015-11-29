@@ -21,6 +21,7 @@
 #include "sr_icmp.h"
 #include "sr_utils.h"
 #include "pwospf_protocol.h"
+#include "sr_pwospf.h"
 
 
 /*---------------------------------------------------------------------
@@ -132,6 +133,10 @@ void sr_ip_forward(struct sr_instance* sr, uint8_t * packet,
      through which to send the packet to the next hop. */
   uint32_t nexthop = sr_router_nexthop(sr, target_ip, iface_out);
 
+  if (nexthop == 0) { /* No route found, drop the packet */
+    return;
+  }
+
   struct ip *ip_hdr = (struct ip *) (packet+14);
   struct sr_ethernet_hdr *e_hdr = (struct sr_ethernet_hdr *) packet;
   
@@ -200,9 +205,10 @@ void sr_ip_handler(struct sr_instance* sr, uint8_t * packet,
     return;
   }
 
-
-  if (ip_hdr->ip_dst.s_addr == htonl(OSPF_AllSPFRouters)) {
-    printf("Received PWOSPF HELLO packet!\n");
+  /*--- PWOSPF packet ---*/
+  if (ip_hdr->ip_p == IPPROTO_OSPFv2) {
+    //    printf("Received PWOSPF packet at %s\n", interface);
+    pwospf_handle_packet(sr, packet, len, interface);
     return;
   }
 

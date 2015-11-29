@@ -34,10 +34,11 @@ void print_mac(uint8_t *mac)
   printf("%02x", mac[5]);
 }
 
-void print_ip(uint8_t *ip)
+void print_ip(uint32_t ip)
 {
+  uint8_t *ip_addr = &ip;
   for (int i = 0; i < 3; i++) {
-    printf("%d.", ip[i]);
+    printf("%d.", ip_addr[i]);
   }
-  printf("%d", ip[3]);
+  printf("%d", ip_addr[3]);
 }

@@ -15,6 +15,6 @@
 
 uint16_t checksum(void *data, int len);
 void print_mac(uint8_t *mac);
-void print_ip(uint8_t *ip);
+void print_ip(uint32_t ip);
 
 #endif /* --  sr_UTILS_H -- */

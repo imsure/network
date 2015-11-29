@@ -78,8 +78,8 @@ void sr_handlepacket(struct sr_instance* sr,
 
   struct sr_ethernet_hdr *e_hdr = (struct sr_ethernet_hdr*) packet; // Ethernet header
 
-  printf("*** -> Received packet of length %d (ether_type=%04x) at %s\n",
-	 len, ntohs(e_hdr->ether_type), interface);
+  /* printf("*** -> Received packet of length %d (ether_type=%04x) at %s\n", */
+  /* 	 len, ntohs(e_hdr->ether_type), interface); */
 
   /* The ethernet payload can be either ARP or IP */
   switch(ntohs(e_hdr->ether_type)) {

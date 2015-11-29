@@ -22,6 +22,10 @@ struct pwospf_subsys
   struct pwospf_if *iflist;
   uint32_t rid;
   uint32_t aid; /* area ID */
+  struct pwospf_link *links; /* a list of links router knows */
+
+  int last_lsu_seq_sent;
+  int topo_changed; /* indicate whether the topology changed or not */
 
   /* -- thread and single lock for pwospf subsystem -- */
   pthread_t thread;
@@ -49,9 +53,28 @@ struct pwospf_if {
   struct pwospf_if *next;
 };
 
+/* Local link connectivity */
+struct pwospf_link {
+  char interface[sr_IFACE_NAMELEN];
+  uint32_t subnet;
+  uint32_t mask;
+  uint32_t nbor_rid;
+  int isdown;
+  struct pwospf_link *next;
+};
+
+/* Entry of topology DB of the sr. An entry describes
+   through which interface my router connects to a subnet with
+   a neighboring */
+struct pwospf_topo_entry {
+  
+};
+
 int pwospf_init(struct sr_instance* sr);
 void pwospf_lock(struct pwospf_subsys* subsys);
 void pwospf_unlock(struct pwospf_subsys* subsys);
+void pwospf_handle_hello(struct sr_instance *sr, uint8_t * packet,
+			 unsigned int len, char* interface);
 
 
 #endif /* SR_PWOSPF_H */
