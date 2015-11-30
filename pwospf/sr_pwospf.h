@@ -12,9 +12,19 @@
 
 #include <pthread.h>
 #include <stdint.h>
+#include "pwospf_protocol.h"
 
 /* forward declare */
 struct sr_instance;
+
+/* Entry of topology DB of the router */
+struct pwospf_topo_entry {
+  uint32_t src_rid; /* from which this entry came from  */
+  uint16_t last_seqnum_received;
+  time_t last_received_time;
+  int num_adv; /* # of lsa this entry contains */
+  struct ospfv2_lsa lsa_array[4]; /* array of received lsa */
+};
 
 struct pwospf_subsys
 {
@@ -24,8 +34,11 @@ struct pwospf_subsys
   uint32_t aid; /* area ID */
   struct pwospf_link *links; /* a list of links router knows */
 
-  int last_lsu_seq_sent;
+  uint16_t last_lsu_seq_sent;
   int topo_changed; /* indicate whether the topology changed or not */
+  time_t last_lsu_sent;
+
+  struct pwospf_topo_entry topo_entries[2];
 
   /* -- thread and single lock for pwospf subsystem -- */
   pthread_t thread;
@@ -61,13 +74,6 @@ struct pwospf_link {
   uint32_t nbor_rid;
   int isdown;
   struct pwospf_link *next;
-};
-
-/* Entry of topology DB of the sr. An entry describes
-   through which interface my router connects to a subnet with
-   a neighboring */
-struct pwospf_topo_entry {
-  
 };
 
 int pwospf_init(struct sr_instance* sr);
