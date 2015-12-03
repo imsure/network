@@ -36,7 +36,7 @@ void print_mac(uint8_t *mac)
 
 void print_ip(uint32_t ip)
 {
-  uint8_t *ip_addr = &ip;
+  uint8_t *ip_addr = (uint8_t *)&ip;
   for (int i = 0; i < 3; i++) {
     printf("%d.", ip_addr[i]);
   }

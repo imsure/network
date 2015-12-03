@@ -93,5 +93,8 @@ void pwospf_unlock(struct pwospf_subsys* subsys);
 void pwospf_handle_hello(struct sr_instance *sr, uint8_t * packet,
 			 unsigned int len, char* interface);
 uint32_t pwospf_rt_nexthop(struct sr_instance* sr, uint32_t target_ip, char *iface_out);
+uint32_t pwospf_rt_default_nexthop(struct sr_instance* sr, char *iface_out);
+void pwospf_handle_packet(struct sr_instance *sr, uint8_t * packet,
+			  unsigned int len, char* interface);
 
 #endif /* SR_PWOSPF_H */
