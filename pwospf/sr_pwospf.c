@@ -79,7 +79,9 @@ void pwospf_print_link(struct pwospf_link *link)
 
 void pwospf_print_topo_entry(struct pwospf_topo_entry *entry)
 {
-  printf("Source router: ");
+  printf("Sending host: ");
+  print_ip(entry->sending_host);
+  printf("  Source router: ");
   print_ip(entry->src_rid);
   printf("  last seq# received: %d  # of lsa: %d\n",
 	 entry->last_seqnum_received, entry->num_adv);
@@ -97,8 +99,8 @@ void pwospf_print_topo_entry(struct pwospf_topo_entry *entry)
 void pwospf_print_topo_db(struct sr_instance *sr)
 {
   printf("\nTopology DB:\n");
-  pwospf_print_topo_entry(&(sr->ospf_subsys->topo_entries[0]));
-  pwospf_print_topo_entry(&(sr->ospf_subsys->topo_entries[1]));
+  for (int i = 0; i < 4; ++i)
+    pwospf_print_topo_entry(&(sr->ospf_subsys->topo_entries[i]));
 }
 
 void pwospf_print_iflist(struct sr_instance* sr)
@@ -251,6 +253,113 @@ void pwospf_get_router_id(struct sr_instance* sr)
   sr->ospf_subsys->rid = eth0->ip;
 }
 
+void pwospf_print_routing_entry(struct pwospf_rt* entry)
+{
+  printf("\t"); print_ip(entry->dest);
+  printf("\t"); print_ip(entry->gw);
+  printf("\t"); print_ip(entry->mask);
+  printf("\t%s\n",entry->interface);
+}
+
+
+void pwospf_print_routing_table(struct sr_instance* sr)
+{
+    struct sr_rt* rt_walker = 0;
+
+    if(sr->ospf_subsys->rt == 0)
+    {
+        printf(" *warning* Routing table empty \n");
+        return;
+    }
+
+    printf("\tDestination\tGateway\t\tMask\t\tIface\n");
+
+    rt_walker = sr->ospf_subsys->rt;
+    
+    pwospf_print_routing_entry(rt_walker);
+    while(rt_walker->next)
+    {
+        rt_walker = rt_walker->next; 
+        pwospf_print_routing_entry(rt_walker);
+    }
+}
+
+
+void pwospf_init_rt(struct sr_instance *sr)
+{
+  struct pwospf_rt *rt_walker = sr->ospf_subsys->rt;
+  struct pwospf_link *link_walker = sr->ospf_subsys->links;
+  while (link_walker) {
+    rt_walker->dest = link_walker->subnet;
+    rt_walker->gw = 0; /* no gateway for subnet directly connected to router */
+    rt_walker->mask = link_walker->mask;
+    memcpy(rt_walker->interface, link_walker->interface, sr_IFACE_NAMELEN);
+    rt_walker->next = NULL;
+    
+    if (link_walker->next) {
+      if (link_walker->next->subnet == 0 && link_walker->next->mask == 0) {
+	break;
+      }
+
+      rt_walker->next = (struct pwospf_rt *)malloc(sizeof(struct pwospf_rt));
+    }
+    rt_walker = rt_walker->next;
+    link_walker = link_walker->next;
+  }
+}
+
+uint32_t pwospf_rt_default_nexthop(struct sr_instance* sr, char *iface_out)
+{
+  pwospf_lock(sr->ospf_subsys);
+  struct pwospf_rt *rt_walker = sr->ospf_subsys->rt;
+  uint32_t default_hop = 0;
+
+  while(rt_walker) {
+    if (rt_walker->mask == 0x0 && rt_walker->dest == 0x0) {      
+      default_hop = rt_walker->gw;
+      strncpy(iface_out, rt_walker->interface, sr_IFACE_NAMELEN);
+      break;
+    }
+    rt_walker = rt_walker->next; 
+  }
+
+  pwospf_unlock(sr->ospf_subsys);
+  return default_hop;
+}
+
+uint32_t pwospf_rt_nexthop(struct sr_instance* sr,
+			   uint32_t target_ip,
+			   char *iface_out)
+{
+  struct pwospf_rt *rt_walker = sr->ospf_subsys->rt;
+  uint32_t nexthop = 0;
+
+  pwospf_lock(sr->ospf_subsys);
+
+  printf("Target IP: ");
+  print_ip(target_ip);
+  printf("\n");
+  while(rt_walker) {
+    if (rt_walker->mask != 0x0) {
+      if (rt_walker->dest == (target_ip & rt_walker->mask)) {
+	if (rt_walker->gw != 0x0) {
+	  nexthop = rt_walker->gw;
+	} else {
+	  /* If the gateway entry is 0.0.0.0, next hop is the target,
+	     the dest column is just a prefix match, not exact match. */
+	  nexthop = target_ip;
+	}
+	strncpy(iface_out, rt_walker->interface, sr_IFACE_NAMELEN);
+	break;
+      }
+    }
+    rt_walker = rt_walker->next; 
+  }
+
+  pwospf_unlock(sr->ospf_subsys);
+
+  return nexthop;
+}
 
 /*---------------------------------------------------------------------
  * Method: pwospf_init(..)
@@ -272,28 +381,30 @@ int pwospf_init(struct sr_instance* sr)
 
     /* -- handle subsystem initialization here! -- */
 
-    /* Initialze list of interfaces */
+    /* Initialze list of interfaces, links and rt */
     sr->ospf_subsys->iflist = (struct pwospf_if *)malloc(sizeof(struct pwospf_if));
     sr->ospf_subsys->links = (struct pwospf_link *)malloc(sizeof(struct pwospf_link));
+    sr->ospf_subsys->rt = (struct pwospf_rt *)malloc(sizeof(struct pwospf_rt));
     pwospf_create_iflist(sr);
     pwospf_init_links(sr);
+    pwospf_init_rt(sr);
     pwospf_print_iflist(sr);
     pwospf_print_links(sr);
+    pwospf_print_routing_table(sr);
     
     pwospf_get_router_id(sr);
     sr->ospf_subsys->aid = OSPF_DEFAULT_AREA_ID;
     /* Start LSU periodically flooding timer */
     sr->ospf_subsys->last_lsu_sent = time(NULL);
 
-    /* Indicate empty entries */
-    sr->ospf_subsys->topo_entries[0].src_rid = 0;
-    sr->ospf_subsys->topo_entries[1].src_rid = 0;
+    /* Indicate empty entries and mark all entries as invalid */
+    for (int i = 0; i < 4; ++i) {
+      sr->ospf_subsys->topo_entries[i].src_rid = 0;
+      sr->ospf_subsys->topo_entries[i].sending_host = 0;
+      memset(&(sr->ospf_subsys->topo_entries[i].lsa_array),
+	   0xff, sizeof(struct ospfv2_lsa) * 4);
+    }
 
-    /* Mark all entries as invalid */
-    memset(&(sr->ospf_subsys->topo_entries[0].lsa_array),
-	   0xff, sizeof(struct ospfv2_lsa) * 4);
-    memset(&(sr->ospf_subsys->topo_entries[1].lsa_array),
-	   0xff, sizeof(struct ospfv2_lsa) * 4);
     pwospf_print_topo_db(sr);
 
     /* -- start thread subsystem -- */
@@ -498,6 +609,163 @@ void pwospf_handle_hello(struct sr_instance *sr, uint8_t * packet,
   pwospf_unlock(sr->ospf_subsys);
 }
 
+int topo_get_entry_index(struct sr_instance *sr,
+		    uint32_t sending_host, uint32_t src_rid)
+{
+  int i;
+  for (i = 0; i < 4; ++i) {
+    if (sending_host == sr->ospf_subsys->topo_entries[i].sending_host &&
+	src_rid == sr->ospf_subsys->topo_entries[i].src_rid) {
+      return i;
+    }
+  }
+
+  /* No match found */
+  return -1;
+}
+
+int topo_get_free_entry_index(struct sr_instance *sr)
+{
+  int i;
+  for (i = 0; i < 4; ++i) {
+    if (sr->ospf_subsys->topo_entries[i].sending_host == 0 &&
+	sr->ospf_subsys->topo_entries[i].src_rid == 0) {
+      return i;
+    }
+  }
+
+  /* Should not reach here! */
+  return -1;
+}
+
+void pwospf_update_rt(struct sr_instance *sr, int index)
+{
+  uint32_t sending_host = sr->ospf_subsys->topo_entries[index].sending_host;
+
+  int num_adv = sr->ospf_subsys->topo_entries[index].num_adv;
+  for (int i = 0; i < num_adv; ++i) {
+    struct ospfv2_lsa lsa = sr->ospf_subsys->topo_entries[index].lsa_array[i];
+    /* ignore invalid route */
+    if (lsa.subnet == 0xffffffff) {
+      continue;
+    }
+    /* Discard route directly connect to the router */
+    if (lsa.rid == sr->ospf_subsys->rid) {
+      continue;
+    }
+
+    struct pwospf_rt *rt_walker = sr->ospf_subsys->rt;
+    while (rt_walker->next) {      
+      rt_walker = rt_walker->next;
+    } 
+
+    rt_walker->next = (struct pwospf_rt *) malloc(sizeof(struct pwospf_rt));
+    rt_walker->next->dest = lsa.subnet;
+    rt_walker->next->gw = sr->ospf_subsys->topo_entries[index].sending_host;
+    rt_walker->next->mask = lsa.mask;
+    rt_walker->next->next = NULL;
+    memcpy(rt_walker->next->interface,
+	   sr->ospf_subsys->topo_entries[index].interface, sr_IFACE_NAMELEN);
+  }
+}
+
+void topo_add_entry(struct sr_instance *sr, uint32_t sending_host,
+		    uint32_t src_rid, struct ospfv2_lsu_hdr *pw_lsu_hdr,
+		    int index, char *interface)
+{
+    /* Put received LSU into entry[index] */
+    sr->ospf_subsys->topo_entries[index].sending_host = sending_host;
+    sr->ospf_subsys->topo_entries[index].src_rid = src_rid;
+    sr->ospf_subsys->topo_entries[index].last_seqnum_received = ntohs(pw_lsu_hdr->seq);
+    sr->ospf_subsys->topo_entries[index].last_received_time = time(NULL);
+    sr->ospf_subsys->topo_entries[index].num_adv = ntohl(pw_lsu_hdr->num_adv);
+    memcpy(sr->ospf_subsys->topo_entries[index].interface,
+	   interface, sr_IFACE_NAMELEN);
+
+    struct ospfv2_lsa *lsa;
+    for (int i = 0; i < ntohl(pw_lsu_hdr->num_adv); ++i) {
+      lsa = (struct ospfv2_lsa *)((uint8_t *)pw_lsu_hdr +
+  				  sizeof(struct ospfv2_lsu_hdr) +
+  				  sizeof(struct ospfv2_lsa) * i);
+      sr->ospf_subsys->topo_entries[index].lsa_array[i] = *lsa;
+    }
+}
+
+void pwospf_forward_lsu(struct sr_instance *sr, uint8_t * packet,
+			unsigned int len, char* interface) 
+{
+  struct sr_ethernet_hdr *e_hdr;
+  struct ip *ip_hdr;
+  struct ospfv2_hdr *pw_hdr;
+
+  e_hdr = (struct sr_ethernet_hdr *) packet;
+  ip_hdr = (struct ip *) (packet + sizeof(struct sr_ethernet_hdr));
+  pw_hdr = (struct ospfv2_hdr*) (packet +
+				 sizeof(struct sr_ethernet_hdr) +
+				 sizeof(struct ip));
+
+
+  struct pwospf_if *if_walker = sr->ospf_subsys->iflist;
+  while (if_walker) {
+    if (if_walker->nlist) {
+      if (if_walker->nlist->rid != pw_hdr->rid) {
+	memcpy(e_hdr->ether_shost, if_walker->mac, 6);
+	memcpy(e_hdr->ether_dhost, if_walker->nlist->mac, 6);
+
+	ip_hdr->ip_src.s_addr = if_walker->ip;
+	ip_hdr->ip_dst.s_addr = if_walker->nlist->ip;
+	ip_hdr->ip_sum = 0;
+	ip_hdr->ip_sum = checksum(ip_hdr, sizeof(struct ip));
+
+	int success = sr_send_packet(sr, packet, len, if_walker->name);
+	if (success != 0) {
+	  fprintf(stderr, "%s: Sending packet failed!\n", __func__);
+	}
+	Debug("Forword LSU packet\n");
+      } else {
+	Debug("No need to forward LSU to the incoming neighbor\n");
+      }
+    }
+    if_walker = if_walker->next;
+  }
+}
+
+int topo_check_entry_content(struct sr_instance *sr,
+			     struct ospfv2_lsu_hdr *pw_lsu_hdr,
+			     int index)
+{
+  int changed = 0;
+  uint32_t num_adv = sr->ospf_subsys->topo_entries[index].num_adv;
+  if (ntohl(pw_lsu_hdr->num_adv) == num_adv) {
+    sr->ospf_subsys->topo_entries[index].last_seqnum_received = ntohs(pw_lsu_hdr->seq);
+    sr->ospf_subsys->topo_entries[index].last_received_time = time(NULL);
+
+    struct ospfv2_lsa *lsa;
+    for (int i = 0; i < num_adv; ++i) {
+      lsa = (struct ospfv2_lsa *)((uint8_t *)pw_lsu_hdr +
+				  sizeof(struct ospfv2_lsu_hdr) +
+				  sizeof(struct ospfv2_lsa) * i);
+      struct ospfv2_lsa *lsa_stored;
+      /* subnet and mask should remain the same, rid could be different */
+      for (int j = 0; j < num_adv; ++j) {
+	lsa_stored = &(sr->ospf_subsys->topo_entries[index].lsa_array[j]);
+	if (lsa_stored->subnet == lsa->subnet && lsa_stored->mask == lsa->mask) {
+	  if (lsa_stored->rid != lsa->rid) {
+	    lsa_stored->rid = lsa->rid;
+	    changed = 1;
+	  }
+	  break;
+	}
+      }
+    }
+  } else {
+    changed = 1;
+    Debug("Number of LSA changed!\n");
+  }
+
+  return changed;
+}
+
 /*---------------------------------------------------------------------
  *
  * Handle received HELLO packet from neighbors.
@@ -529,12 +797,47 @@ void pwospf_handle_lsu(struct sr_instance *sr, uint8_t * packet,
 
   struct pwospf_if *iface = get_pwospf_if_by_name(sr, interface);
 
-  struct in_addr rid_addr;
-  rid_addr.s_addr = pw_hdr->rid;
-  time_t current_time = time(NULL);
-  printf("Time received: %s", ctime(&current_time));
-  printf("Router: %s, LSU seq #: %d, number of advs: %d\n", inet_ntoa(rid_addr),
-	 ntohs(pw_lsu_hdr->seq), ntohl(pw_lsu_hdr->num_adv));
+  uint32_t sending_host = ip_hdr->ip_src.s_addr;
+  uint32_t src_rid = pw_hdr->rid;
+
+  /* If LSU packet originally from this router, drop the packet */
+  if (src_rid == sr->ospf_subsys->rid) {
+    Debug("Packet is originally from this router, dropped\n");
+  } else {
+    int entry_index = topo_get_entry_index(sr, sending_host, src_rid);
+    if (entry_index < 0) { /* No entry found */
+      int free_entry_index = topo_get_free_entry_index(sr);
+      topo_add_entry(sr, sending_host, src_rid, pw_lsu_hdr,
+		     free_entry_index, interface);
+      pwospf_update_rt(sr, free_entry_index);
+      pwospf_print_routing_table(sr);
+      /* Forward the newly added LSU */
+      pwospf_forward_lsu(sr, packet, len, interface);
+    } else { /* entry found */
+      uint16_t last_seqnum =
+	sr->ospf_subsys->topo_entries[entry_index].last_seqnum_received;
+      if (ntohs(pw_lsu_hdr->seq) == last_seqnum ) {
+	fprintf(stderr, "Repeated sequence number! Packet dropped\n");
+      } else {
+	/* Check if packet conent is equivalent to the content of
+	   the packet last received from the sending host */
+	int changed = topo_check_entry_content(sr, pw_lsu_hdr, entry_index);
+	if (changed) {
+	  /* TODO: Update routing table and Recompute the shortest path */
+	}
+	/* Forward the received LSU with new seq# */
+	pwospf_forward_lsu(sr, packet, len, interface);	
+      }
+    }
+  }
+  pwospf_print_topo_db(sr);
+
+  /* struct in_addr rid_addr; */
+  /* rid_addr.s_addr = pw_hdr->rid; */
+  /* time_t current_time = time(NULL); */
+  /* printf("Time received: %s", ctime(&current_time)); */
+  /* printf("Router: %s, LSU seq #: %d, number of advs: %d\n", inet_ntoa(rid_addr), */
+  /* 	 ntohs(pw_lsu_hdr->seq), ntohl(pw_lsu_hdr->num_adv)); */
 
   /* struct ospfv2_lsa *lsa; */
   /* for (int i = 0; i < ntohl(pw_lsu_hdr->num_adv); ++i) { */
@@ -547,142 +850,142 @@ void pwospf_handle_lsu(struct sr_instance *sr, uint8_t * packet,
   /*   putchar('\n'); */
   /* } */
 
-  if (pw_hdr->rid == sr->ospf_subsys->rid) {
-    /* LSU packet originally from this router, drop the packet */
-    Debug("Packet is originally from this router, dropped\n");
-  } else if (pw_hdr->rid == sr->ospf_subsys->topo_entries[0].src_rid) {
-    /* Received LSU matches entry[0], check the content */
+  /* if (pw_hdr->rid == sr->ospf_subsys->rid) { */
+  /*   /\* LSU packet originally from this router, drop the packet *\/ */
+  /*   Debug("Packet is originally from this router, dropped\n"); */
+  /* } else if (pw_hdr->rid == sr->ospf_subsys->topo_entries[0].src_rid) { */
+  /*   /\* Received LSU matches entry[0], check the content *\/ */
 
-    /* Check sequence # */
-    uint16_t last_seqnum = sr->ospf_subsys->topo_entries[0].last_seqnum_received;
-    uint32_t num_adv = sr->ospf_subsys->topo_entries[0].num_adv;
-    if (ntohs(pw_lsu_hdr->seq) == last_seqnum) {
-      fprintf(stderr, "Repeated sequence number! Packet dropped\n");
-    } else {
-      forward_flag = 1;
-      if (ntohl(pw_lsu_hdr->num_adv) == num_adv) {
-	sr->ospf_subsys->topo_entries[0].last_seqnum_received = ntohs(pw_lsu_hdr->seq);
-	sr->ospf_subsys->topo_entries[0].last_received_time = time(NULL);
+  /*   /\* Check sequence # *\/ */
+  /*   uint16_t last_seqnum = sr->ospf_subsys->topo_entries[0].last_seqnum_received; */
+  /*   uint32_t num_adv = sr->ospf_subsys->topo_entries[0].num_adv; */
+  /*   if (ntohs(pw_lsu_hdr->seq) == last_seqnum) { */
+  /*     fprintf(stderr, "Repeated sequence number! Packet dropped\n"); */
+  /*   } else { */
+  /*     forward_flag = 1; */
+  /*     if (ntohl(pw_lsu_hdr->num_adv) == num_adv) { */
+  /* 	sr->ospf_subsys->topo_entries[0].last_seqnum_received = ntohs(pw_lsu_hdr->seq); */
+  /* 	sr->ospf_subsys->topo_entries[0].last_received_time = time(NULL); */
 
-	struct ospfv2_lsa *lsa;
-	for (int i = 0; i < num_adv; ++i) {
-	  lsa = (struct ospfv2_lsa *)((uint8_t *)pw_lsu_hdr +
-				      sizeof(struct ospfv2_lsu_hdr) +
-				      sizeof(struct ospfv2_lsa) * i);
-	  struct ospfv2_lsa *lsa_stored;
-	  /* subnet and mask should remain the same, rid could be different */
-	  for (int j = 0; j < num_adv; ++j) {
-	    lsa_stored = &(sr->ospf_subsys->topo_entries[0].lsa_array[j]);
-	    if (lsa_stored->subnet == lsa->subnet && lsa_stored->mask == lsa->mask) {
-	      if (lsa_stored->rid != lsa->rid) {
-		lsa_stored->rid = lsa->rid;
-		/* TODO: Recompute the shortest path */
-	      }
-	      break;
-	    }
-	  }
-	}	
-      } else {
-	Debug("Number of LSA changed!\n");
-      }
-    }
-  } else if (pw_hdr->rid == sr->ospf_subsys->topo_entries[1].src_rid) {
-    /* Received LSU matches entry[1], check the content */
+  /* 	struct ospfv2_lsa *lsa; */
+  /* 	for (int i = 0; i < num_adv; ++i) { */
+  /* 	  lsa = (struct ospfv2_lsa *)((uint8_t *)pw_lsu_hdr + */
+  /* 				      sizeof(struct ospfv2_lsu_hdr) + */
+  /* 				      sizeof(struct ospfv2_lsa) * i); */
+  /* 	  struct ospfv2_lsa *lsa_stored; */
+  /* 	  /\* subnet and mask should remain the same, rid could be different *\/ */
+  /* 	  for (int j = 0; j < num_adv; ++j) { */
+  /* 	    lsa_stored = &(sr->ospf_subsys->topo_entries[0].lsa_array[j]); */
+  /* 	    if (lsa_stored->subnet == lsa->subnet && lsa_stored->mask == lsa->mask) { */
+  /* 	      if (lsa_stored->rid != lsa->rid) { */
+  /* 		lsa_stored->rid = lsa->rid; */
+  /* 		/\* TODO: Recompute the shortest path *\/ */
+  /* 	      } */
+  /* 	      break; */
+  /* 	    } */
+  /* 	  } */
+  /* 	}	 */
+  /*     } else { */
+  /* 	Debug("Number of LSA changed!\n"); */
+  /*     } */
+  /*   } */
+  /* } else if (pw_hdr->rid == sr->ospf_subsys->topo_entries[1].src_rid) { */
+  /*   /\* Received LSU matches entry[1], check the content *\/ */
 
-    /* Check sequence # */
-    uint16_t last_seqnum = sr->ospf_subsys->topo_entries[1].last_seqnum_received;
-    uint32_t num_adv = sr->ospf_subsys->topo_entries[1].num_adv;
-    if (ntohs(pw_lsu_hdr->seq) == last_seqnum) {
-      fprintf(stderr, "Repeated sequence number! Packet dropped\n");
-    } else {
-      forward_flag = 1;
-      if (ntohl(pw_lsu_hdr->num_adv) == num_adv) {
-	sr->ospf_subsys->topo_entries[1].last_seqnum_received = ntohs(pw_lsu_hdr->seq);
-	sr->ospf_subsys->topo_entries[1].last_received_time = time(NULL);
+  /*   /\* Check sequence # *\/ */
+  /*   uint16_t last_seqnum = sr->ospf_subsys->topo_entries[1].last_seqnum_received; */
+  /*   uint32_t num_adv = sr->ospf_subsys->topo_entries[1].num_adv; */
+  /*   if (ntohs(pw_lsu_hdr->seq) == last_seqnum) { */
+  /*     fprintf(stderr, "Repeated sequence number! Packet dropped\n"); */
+  /*   } else { */
+  /*     forward_flag = 1; */
+  /*     if (ntohl(pw_lsu_hdr->num_adv) == num_adv) { */
+  /* 	sr->ospf_subsys->topo_entries[1].last_seqnum_received = ntohs(pw_lsu_hdr->seq); */
+  /* 	sr->ospf_subsys->topo_entries[1].last_received_time = time(NULL); */
 
-	struct ospfv2_lsa *lsa;
-	for (int i = 0; i < num_adv; ++i) {
-	  lsa = (struct ospfv2_lsa *)((uint8_t *)pw_lsu_hdr +
-				      sizeof(struct ospfv2_lsu_hdr) +
-				      sizeof(struct ospfv2_lsa) * i);
-	  struct ospfv2_lsa *lsa_stored;
-	  /* subnet and mask should remain the same, rid could be different */
-	  for (int j = 0; j < num_adv; ++j) {
-	    lsa_stored = &(sr->ospf_subsys->topo_entries[1].lsa_array[j]);
-	    if (lsa_stored->subnet == lsa->subnet && lsa_stored->mask == lsa->mask) {
-	      if (lsa_stored->rid != lsa->rid) {
-		lsa_stored->rid = lsa->rid;
-		/* TODO: Recompute the shortest path */
-	      }
-	      break;
-	    }
-	  }
-	}	
-      } else {
-	Debug("Number of LSA changed!\n");
-      }
-    }
+  /* 	struct ospfv2_lsa *lsa; */
+  /* 	for (int i = 0; i < num_adv; ++i) { */
+  /* 	  lsa = (struct ospfv2_lsa *)((uint8_t *)pw_lsu_hdr + */
+  /* 				      sizeof(struct ospfv2_lsu_hdr) + */
+  /* 				      sizeof(struct ospfv2_lsa) * i); */
+  /* 	  struct ospfv2_lsa *lsa_stored; */
+  /* 	  /\* subnet and mask should remain the same, rid could be different *\/ */
+  /* 	  for (int j = 0; j < num_adv; ++j) { */
+  /* 	    lsa_stored = &(sr->ospf_subsys->topo_entries[1].lsa_array[j]); */
+  /* 	    if (lsa_stored->subnet == lsa->subnet && lsa_stored->mask == lsa->mask) { */
+  /* 	      if (lsa_stored->rid != lsa->rid) { */
+  /* 		lsa_stored->rid = lsa->rid; */
+  /* 		/\* TODO: Recompute the shortest path *\/ */
+  /* 	      } */
+  /* 	      break; */
+  /* 	    } */
+  /* 	  } */
+  /* 	}	 */
+  /*     } else { */
+  /* 	Debug("Number of LSA changed!\n"); */
+  /*     } */
+  /*   } */
 
-  } else if (sr->ospf_subsys->topo_entries[0].src_rid == 0) {
-    forward_flag = 1;
-    /* Put received LSU into entry[0] */
-    sr->ospf_subsys->topo_entries[0].src_rid = pw_hdr->rid;
-    sr->ospf_subsys->topo_entries[0].last_seqnum_received = ntohs(pw_lsu_hdr->seq);
-    sr->ospf_subsys->topo_entries[0].last_received_time = time(NULL);
-    sr->ospf_subsys->topo_entries[0].num_adv = ntohl(pw_lsu_hdr->num_adv);
+  /* } else if (sr->ospf_subsys->topo_entries[0].src_rid == 0) { */
+  /*   forward_flag = 1; */
+  /*   /\* Put received LSU into entry[0] *\/ */
+  /*   sr->ospf_subsys->topo_entries[0].src_rid = pw_hdr->rid; */
+  /*   sr->ospf_subsys->topo_entries[0].last_seqnum_received = ntohs(pw_lsu_hdr->seq); */
+  /*   sr->ospf_subsys->topo_entries[0].last_received_time = time(NULL); */
+  /*   sr->ospf_subsys->topo_entries[0].num_adv = ntohl(pw_lsu_hdr->num_adv); */
 
-    struct ospfv2_lsa *lsa;
-    for (int i = 0; i < ntohl(pw_lsu_hdr->num_adv); ++i) {
-      lsa = (struct ospfv2_lsa *)((uint8_t *)pw_lsu_hdr +
-				  sizeof(struct ospfv2_lsu_hdr) +
-				  sizeof(struct ospfv2_lsa) * i);
-      sr->ospf_subsys->topo_entries[0].lsa_array[i] = *lsa;
-    }
-  } else if (sr->ospf_subsys->topo_entries[1].src_rid == 0) {
-    forward_flag = 1;
-    /* Put received LSU into entry[1] */
-    sr->ospf_subsys->topo_entries[1].src_rid = pw_hdr->rid;
-    sr->ospf_subsys->topo_entries[1].last_seqnum_received = ntohs(pw_lsu_hdr->seq);
-    sr->ospf_subsys->topo_entries[1].last_received_time = time(NULL);
-    sr->ospf_subsys->topo_entries[1].num_adv = ntohl(pw_lsu_hdr->num_adv);
+  /*   struct ospfv2_lsa *lsa; */
+  /*   for (int i = 0; i < ntohl(pw_lsu_hdr->num_adv); ++i) { */
+  /*     lsa = (struct ospfv2_lsa *)((uint8_t *)pw_lsu_hdr + */
+  /* 				  sizeof(struct ospfv2_lsu_hdr) + */
+  /* 				  sizeof(struct ospfv2_lsa) * i); */
+  /*     sr->ospf_subsys->topo_entries[0].lsa_array[i] = *lsa; */
+  /*   } */
+  /* } else if (sr->ospf_subsys->topo_entries[1].src_rid == 0) { */
+  /*   forward_flag = 1; */
+  /*   /\* Put received LSU into entry[1] *\/ */
+  /*   sr->ospf_subsys->topo_entries[1].src_rid = pw_hdr->rid; */
+  /*   sr->ospf_subsys->topo_entries[1].last_seqnum_received = ntohs(pw_lsu_hdr->seq); */
+  /*   sr->ospf_subsys->topo_entries[1].last_received_time = time(NULL); */
+  /*   sr->ospf_subsys->topo_entries[1].num_adv = ntohl(pw_lsu_hdr->num_adv); */
 
-    struct ospfv2_lsa *lsa;
-    for (int i = 0; i < ntohl(pw_lsu_hdr->num_adv); ++i) {
-      lsa = (struct ospfv2_lsa *)((uint8_t *)pw_lsu_hdr +
-				  sizeof(struct ospfv2_lsu_hdr) +
-				  sizeof(struct ospfv2_lsa) * i);
-      sr->ospf_subsys->topo_entries[1].lsa_array[i] = *lsa;
-    }
-  } else {
-    fprintf(stderr, "Unexpeced case when handling received LSU!\n");
-  }
-  pwospf_print_topo_db(sr);
+  /*   struct ospfv2_lsa *lsa; */
+  /*   for (int i = 0; i < ntohl(pw_lsu_hdr->num_adv); ++i) { */
+  /*     lsa = (struct ospfv2_lsa *)((uint8_t *)pw_lsu_hdr + */
+  /* 				  sizeof(struct ospfv2_lsu_hdr) + */
+  /* 				  sizeof(struct ospfv2_lsa) * i); */
+  /*     sr->ospf_subsys->topo_entries[1].lsa_array[i] = *lsa; */
+  /*   } */
+  /* } else { */
+  /*   fprintf(stderr, "Unexpeced case when handling received LSU!\n"); */
+  /* } */
+  /* pwospf_print_topo_db(sr); */
 
-  if (forward_flag) {
-    struct pwospf_if *if_walker = sr->ospf_subsys->iflist;
-    while (if_walker) {
-      if (if_walker->nlist) {
-	if (if_walker->nlist->rid != pw_hdr->rid) {
-	  memcpy(e_hdr->ether_shost, if_walker->mac, 6);
-	  memcpy(e_hdr->ether_dhost, if_walker->nlist->mac, 6);
+  /* if (forward_flag) { */
+  /*   struct pwospf_if *if_walker = sr->ospf_subsys->iflist; */
+  /*   while (if_walker) { */
+  /*     if (if_walker->nlist) { */
+  /* 	if (if_walker->nlist->rid != pw_hdr->rid) { */
+  /* 	  memcpy(e_hdr->ether_shost, if_walker->mac, 6); */
+  /* 	  memcpy(e_hdr->ether_dhost, if_walker->nlist->mac, 6); */
 
-	  ip_hdr->ip_src.s_addr = if_walker->ip;
-	  ip_hdr->ip_dst.s_addr = if_walker->nlist->ip;
-	  ip_hdr->ip_sum = 0;
-	  ip_hdr->ip_sum = checksum(ip_hdr, sizeof(struct ip));
+  /* 	  ip_hdr->ip_src.s_addr = if_walker->ip; */
+  /* 	  ip_hdr->ip_dst.s_addr = if_walker->nlist->ip; */
+  /* 	  ip_hdr->ip_sum = 0; */
+  /* 	  ip_hdr->ip_sum = checksum(ip_hdr, sizeof(struct ip)); */
 
-	  int success = sr_send_packet(sr, packet, len, if_walker->name);
-	  if (success != 0) {
-	    fprintf(stderr, "%s: Sending packet failed!\n", __func__);
-	  }
-	  Debug("Forword LSU packet\n");
-	} else {
-	  Debug("No need to forward LSU to the incoming neighbor\n");
-	}
-      }
-      if_walker = if_walker->next;
-    }
-  }
+  /* 	  int success = sr_send_packet(sr, packet, len, if_walker->name); */
+  /* 	  if (success != 0) { */
+  /* 	    fprintf(stderr, "%s: Sending packet failed!\n", __func__); */
+  /* 	  } */
+  /* 	  Debug("Forword LSU packet\n"); */
+  /* 	} else { */
+  /* 	  Debug("No need to forward LSU to the incoming neighbor\n"); */
+  /* 	} */
+  /*     } */
+  /*     if_walker = if_walker->next; */
+  /*   } */
+  /* } */
 
   pwospf_unlock(sr->ospf_subsys);
 }
@@ -831,11 +1134,11 @@ void pwospf_flood_lsu(struct sr_instance *sr)
 static
 void* pwospf_run_thread(void* arg)
 {
-    struct sr_instance* sr = (struct sr_instance*)arg;
+  struct sr_instance* sr = (struct sr_instance*)arg;
 
-    while(1)
+  while(1)
     {
-        /* -- PWOSPF subsystem functionality should start  here! -- */
+      /* -- PWOSPF subsystem functionality should start  here! -- */
       pwospf_lock(sr->ospf_subsys);
       pwospf_broadcast_hello(sr);
       pwospf_unlock(sr->ospf_subsys);
@@ -854,6 +1157,6 @@ void* pwospf_run_thread(void* arg)
       /*--- TODO: Check validity of topology DB entries ---*/
     }
 
-    return NULL;
+  return NULL;
 } /* -- run_ospf_thread -- */
 

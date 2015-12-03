@@ -35,7 +35,7 @@ uint32_t sr_router_default_nexthop(struct sr_instance* sr, char *iface_out)
   struct sr_rt* rt_walker = sr->routing_table;
   uint32_t default_hop = 0;
 
-  while(rt_walker->next) {
+  while(rt_walker) {
     if (rt_walker->mask.s_addr == 0x0 &&
 	rt_walker->dest.s_addr == 0x0) {      
       default_hop = rt_walker->gw.s_addr;
@@ -80,8 +80,9 @@ uint32_t sr_router_nexthop(struct sr_instance* sr, uint32_t target_ip,
     rt_walker = rt_walker->next; 
   }
 
-  if (nexthop) return nexthop;
-  else return sr_router_default_nexthop(sr, iface_out);
+  return nexthop;
+  /* if (nexthop) return nexthop; */
+  /* else return sr_router_default_nexthop(sr, iface_out); */
 }
 
 
@@ -134,7 +135,16 @@ void sr_ip_forward(struct sr_instance* sr, uint8_t * packet,
   uint32_t nexthop = sr_router_nexthop(sr, target_ip, iface_out);
 
   if (nexthop == 0) { /* No route found, drop the packet */
-    return;
+    nexthop = pwospf_rt_nexthop(sr, target_ip, iface_out);
+    if (nexthop == 0) {
+      nexthop = sr_router_default_nexthop(sr, iface_out);
+      if (nexthop == 0) {
+	nexthop = pwospf_rt_default_nexthop(sr, iface_out);
+      }
+    }
+    /* Debug("nexthop: "); */
+    /* print_ip(nexthop); */
+    /* Debug("  Outgoing interface: %s\n", iface_out); */
   }
 
   struct ip *ip_hdr = (struct ip *) (packet+14);
