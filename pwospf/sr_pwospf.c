@@ -288,19 +288,36 @@ void pwospf_print_routing_table(struct sr_instance* sr)
     }
 }
 
-void pwospf_rt_delete_route(struct sr_instance *sr, uint32_t dest)
+
+void pwospf_rt_delete_route(struct sr_instance *sr, uint32_t dest,
+			    struct pwospf_if *iface)
 {
   struct pwospf_rt *rt_walker = sr->ospf_subsys->rt;
-  struct pwospf_rt *rt_prev = NULL;
+  struct pwospf_rt *rt_prev, *rt_tmp;
+  rt_prev = NULL;
+  /*--- Delete routes with dest as 'dest' and those use iface->nlist->ip
+    as nexthop (gw) ---*/
   while (rt_walker) {
     if (rt_walker->dest == dest && rt_walker->gw == 0) {
-      if (rt_prev == NULL)
+      rt_tmp = rt_walker;
+      if (rt_walker == sr->ospf_subsys->rt) {
 	sr->ospf_subsys->rt = rt_walker->next;
-      else
+      } else {
 	rt_prev->next = rt_walker->next;
-      
-      free(rt_walker);
-      return;
+      }
+      rt_walker = rt_walker->next;
+      free(rt_tmp);
+      continue;
+    } else if (iface->nlist && iface->nlist->ip == rt_walker->gw) {
+      rt_tmp = rt_walker;
+      if (rt_walker == sr->ospf_subsys->rt) {
+	sr->ospf_subsys->rt = rt_walker->next;
+      } else {
+	rt_prev->next = rt_walker->next;
+      }
+      rt_walker = rt_walker->next;
+      free(rt_tmp);
+      continue;      
     }
     rt_prev = rt_walker;
     rt_walker = rt_walker->next;
@@ -1077,7 +1094,8 @@ void pwospf_check_nbor_timeout(struct sr_instance *sr)
 	while (link_walker) {
 	  if (link_walker->nbor_rid == if_walker->nlist->rid) {
 	    link_walker->isdown = 1;
-	    pwospf_rt_delete_route(sr, link_walker->subnet & link_walker->mask);
+	    pwospf_rt_delete_route(sr, link_walker->subnet & link_walker->mask,
+				   if_walker);
 	    pwospf_print_routing_table(sr);
 	  }
 	  link_walker = link_walker->next;
