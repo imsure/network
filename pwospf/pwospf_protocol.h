@@ -21,10 +21,13 @@ static const uint8_t OSPF_TYPE_LSU   = 4;
 static const uint8_t OSPF_TYPE_LSUPDATE = 4;
 static const uint8_t OSPF_NET_BROADCAST = 1;
 static const uint8_t OSPF_DEFAULT_HELLOINT  =  5; /* seconds */
-static const uint8_t OSPF_DEFAULT_LSUINT    = 30; /* seconds */
-static const uint8_t OSPF_NEIGHBOR_TIMEOUT  = 20; /* seconds */ 
+//static const uint8_t OSPF_DEFAULT_LSUINT    = 30; /* seconds */
+static const uint8_t OSPF_DEFAULT_LSUINT    = 10; /* seconds */
+//static const uint8_t OSPF_NEIGHBOR_TIMEOUT  = 20; /* seconds */ 
+static const uint8_t OSPF_NEIGHBOR_TIMEOUT  = 10; /* seconds */ 
 
-static const uint8_t OSPF_TOPO_ENTRY_TIMEOUT = 35; /* seconds */ 
+//static const uint8_t OSPF_TOPO_ENTRY_TIMEOUT = 35; /* seconds */ 
+static const uint8_t OSPF_TOPO_ENTRY_TIMEOUT = 15; /* seconds */ 
 
 static const uint8_t OSPF_DEFAULT_AUTHKEY  =  0; /* ignored */
 

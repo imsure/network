@@ -61,6 +61,7 @@ struct neighbor {
   uint32_t ip;
   unsigned char mac[6];
   time_t last_hello_received;
+  int islost;
   struct neighbor *next;
 };
 
