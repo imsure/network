@@ -25,6 +25,14 @@ struct pwospf_rt {
   struct pwospf_rt* next;
 };
 
+struct pwospf_ftable {
+  uint32_t dest;
+  uint32_t gw;
+  uint32_t mask;
+  char   interface[sr_IFACE_NAMELEN];
+  struct pwospf_ftable* next;
+};
+
 /* Entry of topology DB of the router */
 struct pwospf_topo_entry {
   uint32_t sending_host; /* who sent this entry */
@@ -44,6 +52,8 @@ struct pwospf_subsys
   uint32_t aid; /* area ID */
   struct pwospf_link *links; /* a list of links router knows */
   struct pwospf_rt *rt;
+  struct pwospf_ftable ft[20];
+  int ftable_size;
 
   uint16_t last_lsu_seq_sent;
   int topo_changed; /* indicate whether the topology changed or not */
