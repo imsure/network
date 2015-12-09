@@ -420,6 +420,48 @@ uint32_t pwospf_rt_nexthop(struct sr_instance* sr,
   return nexthop;
 }
 
+uint32_t pwospf_ftable_default_nexthop(struct sr_instance* sr, char *iface_out)
+{
+  pwospf_lock(sr->ospf_subsys);
+  uint32_t default_hop = 0;
+
+  for (int i = 0; i < sr->ospf_subsys->ftable_size; ++i) {
+    struct pwospf_ftable entry = sr->ospf_subsys->ft[i];
+    if (entry.mask == 0x0 && entry.dest == 0x0) {      
+      default_hop = entry.gw;
+      strncpy(iface_out, entry.interface, sr_IFACE_NAMELEN);
+      break;
+    }
+  }
+
+  pwospf_unlock(sr->ospf_subsys);
+  return default_hop;
+}
+
+uint32_t pwospf_ftable_nexthop(struct sr_instance* sr,
+			       uint32_t target_ip, char *iface_out)
+{
+  uint32_t nexthop = 0;
+  pwospf_lock(sr->ospf_subsys);
+  
+  for (int i = 0; i < sr->ospf_subsys->ftable_size; ++i) {
+    struct pwospf_ftable entry = sr->ospf_subsys->ft[i];
+    if (entry.mask != 0) { /* Ignore the default route to Internet */
+      if (entry.dest == (target_ip & entry.mask)) {
+	if (entry.gw != 0) {
+	  nexthop = entry.gw;
+	} else {
+	  nexthop = target_ip;
+	}
+	strncpy(iface_out, entry.interface, sr_IFACE_NAMELEN);
+	break;
+      }
+    }
+  }
+  pwospf_unlock(sr->ospf_subsys);
+
+  return nexthop;  
+}
 
 void pwospf_print_ft_entry(struct pwospf_ftable *entry)
 {
@@ -521,6 +563,14 @@ void pwospf_compute_shortest_path(struct sr_instance *sr)
 	for (int i = 0; i < 4; ++i) {
 	  if (sr->ospf_subsys->topo_entries[i].src_rid == if_walker->nlist->rid &&
 	      sr->ospf_subsys->topo_entries[i].sending_host != if_walker->nlist->ip) {
+	    struct pwospf_if *if_walker2 = sr->ospf_subsys->iflist;
+	    while (if_walker2) {
+	      if (if_walker2->nlist && (if_walker2->nlist->ip == sr->ospf_subsys->topo_entries[i].sending_host)) {
+		break;
+	      }
+	      if_walker2 = if_walker2->next;
+	    }
+
 	    for (int j = 0; j < sr->ospf_subsys->topo_entries[i].num_adv; ++j) {
 	      struct ospfv2_lsa lsa = sr->ospf_subsys->topo_entries[i].lsa_array[j];
 	      if (!is_direct_subnet(sr, lsa.subnet)) {
@@ -529,7 +579,7 @@ void pwospf_compute_shortest_path(struct sr_instance *sr)
 		  sr->ospf_subsys->topo_entries[i].sending_host; 
 		sr->ospf_subsys->ft[entry_cnt].mask = lsa.mask;
 		memcpy(sr->ospf_subsys->ft[entry_cnt].interface,
-		       if_walker->name, sr_IFACE_NAMELEN);
+		       if_walker2->name, sr_IFACE_NAMELEN);
 		entry_cnt++;
 	      }
 	    }

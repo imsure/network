@@ -130,16 +130,20 @@ void sr_ip_forward(struct sr_instance* sr, uint8_t * packet,
 {
   char *iface_out = (char *) malloc(sr_IFACE_NAMELEN);
   
-  /* Find the next hop in the routing table and the interface
+  /* Find the next hop in the static routing table and the interface
      through which to send the packet to the next hop. */
   uint32_t nexthop = sr_router_nexthop(sr, target_ip, iface_out);
 
-  if (nexthop == 0) { /* No route found, drop the packet */
-    nexthop = pwospf_rt_nexthop(sr, target_ip, iface_out);
+  /* No route found in static table, look for dynamically built
+     forwarding table by PWOSPF submodule. */
+  if (nexthop == 0) { 
+    //    nexthop = pwospf_rt_nexthop(sr, target_ip, iface_out);
+    nexthop = pwospf_ftable_nexthop(sr, target_ip, iface_out);
     if (nexthop == 0) {
+      /* Look for default route in static routing table */
       nexthop = sr_router_default_nexthop(sr, iface_out);
-      if (nexthop == 0) {
-	nexthop = pwospf_rt_default_nexthop(sr, iface_out);
+      if (nexthop == 0) { /* Look for default route in dynamic forwarding table */
+	nexthop = pwospf_ftable_default_nexthop(sr, iface_out);
       }
     }
     /* Debug("nexthop: "); */
